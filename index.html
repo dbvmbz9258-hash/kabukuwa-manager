@@ -1254,6 +1254,23 @@
             );
         }
 
+        function normalizeDateValue(v) {
+            let s = String(v || '').trim();
+            if (!s) return '-';
+            const legacyFormula = s.match(/^="(.*)"$/); // 旧バージョンの数式形式との後方互換
+            if (legacyFormula) s = legacyFormula[1];
+            if (s === '-') return '-';
+            // Excelがシリアル値（数値）に変換してしまった場合の救済
+            if (/^\d+(\.\d+)?$/.test(s)) {
+                const n = Number(s);
+                const d = new Date(Math.round((n - 25569) * 86400 * 1000));
+                if (!isNaN(d.getTime())) {
+                    const pad = (x) => String(x).padStart(2, '0');
+                    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+                }
+            }
+            return s.replace(/／/g, '-').replace(/\//g, '-');
+        }
         function getIdealWeightFromTable(days,tbl) {
             if (!tbl||tbl.length===0||days===null||days<0) return null;
             if (days<=tbl[0].day) return tbl[0].w!==undefined?tbl[0].w:null;
@@ -1762,6 +1779,24 @@
                 const csvBody = XLSX.utils.sheet_to_csv(ws);
                 downloadCsv('beetle_import_template.csv', csvBody);
             };
+            const repairBrokenDates = () => {
+                const isBroken = (v) => /^\d+(\.\d+)?$/.test(String(v || '').trim());
+                let fixedCount = 0;
+                const updated = creatures.map(c => {
+                    const next = { ...c };
+                    if (isBroken(c.hatchDate)) { next.hatchDate = normalizeDateValue(c.hatchDate); fixedCount++; }
+                    if (isBroken(c.emergenceDate)) { next.emergenceDate = normalizeDateValue(c.emergenceDate); fixedCount++; }
+                    return next;
+                });
+                if (fixedCount === 0) {
+                    alert('数値化された日付データは見つかりませんでした。');
+                    return;
+                }
+                if (confirm(`${fixedCount}件の日付（孵化日・羽化日）が数値になっているのを検出しました。正しい日付形式に修復しますか？`)) {
+                    setCreatures(updated);
+                    alert('修復しました。');
+                }
+            };
             const importFromCSV = (file) => {
                 const reader = new FileReader();
                 reader.onload = (ev) => {
@@ -1777,24 +1812,6 @@
                         const updated = [...creatures];
                         let newCount = 0, updateCount = 0;
 
-                        const normalizeImportedDate = (v) => {
-                            let s = String(v || '').trim();
-                            if (!s) return '-';
-                            const legacyFormula = s.match(/^="(.*)"$/); // 旧バージョンの数式形式との後方互換
-                            if (legacyFormula) s = legacyFormula[1];
-                            if (s === '-') return '-';
-                            // Excelがシリアル値（数値）に変換してしまった場合の救済
-                            if (/^\d+(\.\d+)?$/.test(s)) {
-                                const n = Number(s);
-                                const d = new Date(Math.round((n - 25569) * 86400 * 1000));
-                                if (!isNaN(d.getTime())) {
-                                    const pad = (x) => String(x).padStart(2, '0');
-                                    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
-                                }
-                            }
-                            return s.replace(/／/g, '-').replace(/\//g, '-');
-                        };
-
                         rows.forEach(row => {
                             const name = String(row['個体名'] || '').trim();
                             if (!name) return;
@@ -1806,9 +1823,9 @@
                                 alias: row['名称'] || '',
                                 origin: row['産地'] || '',
                                 generation: row['累代'] || '',
-                                hatchDate: normalizeImportedDate(row['孵化日']),
+                                hatchDate: normalizeDateValue(row['孵化日']),
                                 stage: row['ステージ'] || '幼虫',
-                                emergenceDate: normalizeImportedDate(row['羽化日']),
+                                emergenceDate: normalizeDateValue(row['羽化日']),
                                 emergenceSize: (emergenceSizeRaw && emergenceSizeRaw !== '-') ? emergenceSizeRaw : '',
                                 maleParent: row['オス親'] || '',
                                 femaleParent: row['メス親'] || ''
@@ -2044,9 +2061,13 @@
                                     <button onClick={() => { downloadCsvTemplate(); setShowExcelModal(false); }} className="w-full bg-neutral-700 py-3 rounded-lg font-bold text-white text-sm hover:bg-neutral-600 transition-colors">
                                         <i className="fa-solid fa-file-lines mr-1"></i>入力フォームをダウンロード
                                     </button>
+                                    <button onClick={() => { repairBrokenDates(); }} className="w-full bg-amber-700 py-3 rounded-lg font-bold text-white text-sm hover:bg-amber-600 transition-colors">
+                                        <i className="fa-solid fa-wrench mr-1"></i>日付データを修復
+                                    </button>
                                 </div>
                                 <p className="text-[10px] text-neutral-500">※ 入力フォームは各項目の先頭行に記入例が入ったCSVです。Excelで開いて2行目を書き換え、行を追加してから「CSVを読込」してください。</p>
                                 <p className="text-[10px] text-neutral-500">※ 読込時は「個体名」で既存データと照合し、一致すれば更新・なければ新規追加されます（体重・成長率・温度・累積F値は反映されません）。</p>
+                                <p className="text-[10px] text-neutral-500">※ 「日付データを修復」は、過去のCSV読込で孵化日・羽化日が数値（例: 45896.375）になってしまった個体を正しい日付形式に直します。</p>
                                 <button onClick={() => setShowExcelModal(false)} className="w-full bg-neutral-700 py-2 rounded font-bold text-white text-sm">閉じる</button>
                             </div>
                         </div>
