@@ -1723,7 +1723,7 @@
                 }
 
                 if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    navigator.share({ files: [file], title: fileName }).catch(() => {
+                    navigator.share({ files: [file] }).catch(() => {
                         fallbackDownload();
                     });
                 } else {
@@ -2044,13 +2044,14 @@
                             <div className="bg-neutral-900 p-6 rounded-xl w-full max-w-sm border border-neutral-700 space-y-4">
                                 <h3 className="font-bold text-white"><i className="fa-solid fa-file-excel mr-1"></i>Excel連携</h3>
                                 <p className="text-[11px] text-neutral-400 leading-relaxed">一覧に表示中のデータをCSVファイルとして書き出したり、CSVファイルから個体データを取り込んだりできます（Excelでそのまま開けます）。</p>
+                                <p className="text-[10px] text-amber-400 leading-relaxed">※ 共有画面が出たら必ず「”ファイル”に保存」を選んでください。「メモ」やメールの本文に直接貼り付ける形を選ぶと、ファイル名しか保存されません。</p>
                                 <div className="space-y-2">
                                     <button onClick={() => { exportToExcel(); setShowExcelModal(false); }} className="w-full bg-emerald-600 py-3 rounded-lg font-bold text-white text-sm hover:bg-emerald-500 transition-colors">
                                         <i className="fa-solid fa-download mr-1"></i>CSVで保存
                                     </button>
                                     <label className="w-full bg-emerald-600 py-3 rounded-lg font-bold text-white text-sm hover:bg-emerald-500 transition-colors cursor-pointer text-center block">
                                         <i className="fa-solid fa-upload mr-1"></i>CSVを読込
-                                        <input type="file" accept=".csv" className="hidden" onChange={e => {
+                                        <input type="file" accept=".csv,text/csv,application/vnd.ms-excel,text/plain" className="hidden" onChange={e => {
                                             const file = e.target.files[0];
                                             if (!file) return;
                                             importFromCSV(file);
