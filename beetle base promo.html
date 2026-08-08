@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beetle Base — プロモーション</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#000000;
+    --panel:#141414;
+    --line:#2a2a2a;
+    --emerald:#10b981;
+    --emerald-soft:#34d399;
+    --blue:#3b82f6;
+    --pink:#ec4899;
+    --red:#ef4444;
+    --amber:#d97706;
+    --text:#ffffff;
+    --text-dim:#a3a3a3;
+    --text-faint:#5c5c5c;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    width:100%; height:100%;
+    background:#0a0a0a;
+    color:var(--text);
+    font-family:'Zen Kaku Gothic New', 'Hiragino Sans', sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .stage{ display:flex; flex-direction:column; align-items:center; gap:16px; padding:24px; }
+  .stage-label{ font-size:11px; letter-spacing:.28em; color:var(--text-faint); text-transform:uppercase; }
+
+  .phone{
+    position:relative;
+    width:min(390px, 88vw);
+    height:min(844px, 82vh);
+    background:#000;
+    border-radius:52px;
+    padding:14px;
+    box-shadow:0 0 0 2px #262626, 0 30px 80px -20px rgba(0,0,0,0.85);
+    cursor:pointer; user-select:none;
+  }
+  .screen{
+    position:relative; width:100%; height:100%;
+    background:var(--black);
+    border-radius:38px; overflow:hidden; isolation:isolate;
+  }
+  .notch{ position:absolute; top:10px; left:50%; transform:translateX(-50%); width:96px; height:26px; background:#000; border-radius:16px; z-index:50; }
+
+  .progress-row{ position:absolute; top:20px; left:14px; right:14px; display:flex; gap:5px; z-index:40; }
+  .progress-track{ flex:1; height:3px; border-radius:2px; background:rgba(255,255,255,0.16); overflow:hidden; }
+  .progress-fill{ height:100%; width:0%; background:var(--emerald); border-radius:2px; }
+  @keyframes fillbar{ from{width:0%;} to{width:100%;} }
+
+  /* シーン全体: ぼかしクロスフェードで切り替え */
+  .scene{
+    position:absolute; inset:0;
+    opacity:0; pointer-events:none;
+    transform:scale(1.02);
+    filter:blur(14px);
+    transition:opacity 1.4s ease, transform 1.4s ease, filter 1.4s ease;
+    font-size:12px;
+    overflow:hidden;
+  }
+  .scene.active{ opacity:1; pointer-events:auto; transform:scale(1); filter:blur(0px); z-index:10; }
+
+  /* シーン内: 画像(visual)とコピー(copy-full)が交互に切り替わる */
+  .visual{
+    position:absolute;
+    top:60px; left:10px; right:10px; bottom:10px;
+    border-radius:26px;
+    background:#000;
+    box-shadow:0 0 0 2px #2c2c2c, 0 0 0 4px #0a0a0a, 0 18px 40px -18px rgba(0,0,0,0.75);
+    padding:22px 14px 14px;
+    display:flex; flex-direction:column;
+    overflow:hidden;
+    opacity:0; filter:blur(10px); transform:scale(0.96);
+    transition:opacity .8s ease, filter .8s ease, transform .8s ease;
+  }
+  .visual::before{
+    content:'';
+    position:absolute; top:7px; left:50%; transform:translateX(-50%);
+    width:54px; height:12px; background:#0a0a0a; border-radius:8px; z-index:30;
+  }
+  .scene.show-visual .visual{ opacity:1; filter:blur(0px); transform:scale(1); }
+
+  .copy-full{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    padding:0 30px; text-align:center;
+    opacity:1; filter:blur(0px);
+    transition:opacity .8s ease, filter .8s ease;
+  }
+  .scene.show-visual .copy-full{ opacity:0; filter:blur(10px); }
+
+  .app-brand{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+  .app-name{ font-family:'Zen Maru Gothic', sans-serif; font-weight:900; font-size:20px; color:var(--emerald); }
+  .app-by{ display:block; font-size:9px; color:var(--text-dim); font-weight:400; }
+  .btn-row{ display:flex; gap:5px; margin-bottom:10px; flex-wrap:wrap; }
+  .chip{
+    flex:1; min-width:0; background:#262626; color:#fff; border-radius:8px;
+    font-size:9px; font-weight:700; text-align:center; padding:8px 2px;
+    display:flex; align-items:center; justify-content:center; gap:3px;
+  }
+  .chip.green{ background:var(--emerald); color:#04150e; }
+  .tabs{ display:flex; gap:14px; border-bottom:1px solid var(--line); margin-bottom:12px; padding-bottom:8px; font-size:12px; color:var(--text-dim); font-weight:700; }
+  .tabs .on{ color:var(--emerald); position:relative; }
+  .tabs .on::after{ content:''; position:absolute; left:0; right:0; bottom:-9px; height:2px; background:var(--emerald); }
+
+  h2.headline{
+    font-family:'Zen Maru Gothic', sans-serif; font-weight:900; font-size:20px; color:var(--emerald);
+    margin-bottom:4px; line-height:1.3;
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:6px;
+    font-weight:900; font-size:10px; letter-spacing:.18em; color:var(--emerald-soft);
+    margin-bottom:10px; text-transform:uppercase;
+  }
+  .eyebrow::before{ content:''; width:14px; height:2px; background:var(--emerald-soft); display:inline-block; }
+
+  .copy-line{ font-size:22px; color:#fff; font-weight:700; line-height:1.6; }
+  .kakko{
+    color:#fff; font-weight:900;
+    display:inline-block; opacity:0; filter:blur(8px);
+  }
+  .scene.active .kakko{ animation:kakkoReveal .9s ease forwards .9s; }
+  @keyframes kakkoReveal{ to{ opacity:1; filter:blur(0px); } }
+  .legend-note{ font-size:11px; color:var(--text-dim); margin-bottom:10px; }
+
+  .table-card{ background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .trow{ display:flex; padding:10px 8px; border-bottom:1px solid var(--line); font-size:10px; align-items:center; }
+  .trow:last-child{ border-bottom:none; }
+  .trow.head{ color:var(--text-dim); font-weight:700; font-size:9px; }
+  .trow:not(.head){ opacity:0; transform:translateX(-420%); }
+  .scene.show-visual .trow:not(.head){ animation:rowCutIn .55s cubic-bezier(.1,.7,.15,1) forwards; }
+  .scene.show-visual .trow:not(.head):nth-of-type(1){ animation-delay:0s; }
+  .scene.show-visual .trow:not(.head):nth-of-type(2){ animation-delay:.18s; }
+  .scene.show-visual .trow:not(.head):nth-of-type(3){ animation-delay:.36s; }
+  .scene.show-visual .trow:not(.head):nth-of-type(4){ animation-delay:.54s; }
+  .scene.show-visual .trow:not(.head):nth-of-type(5){ animation-delay:.72s; }
+  .scene.show-visual .trow:not(.head):nth-of-type(6){ animation-delay:.9s; }
+  .scene.show-visual .trow:not(.head):nth-of-type(7){ animation-delay:1.08s; }
+  .scene.show-visual .trow:not(.head):nth-of-type(8){ animation-delay:1.26s; }
+  @keyframes rowCutIn{
+    0%{ opacity:0; transform:translateX(-420%); }
+    55%{ opacity:1; transform:translateX(3%); }
+    100%{ opacity:1; transform:translateX(0); }
+  }
+  .tcell{ flex:1; text-align:center; color:var(--text-dim); }
+  .tcell.name{ color:#fff; font-weight:700; flex:1.4; }
+  .filter-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:10px; color:var(--text-dim); }
+  .filter-chip{ background:#262626; padding:5px 10px; border-radius:8px; font-size:9px; font-weight:700; }
+
+  .detail-topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .back-link{ color:var(--emerald); font-size:12px; font-weight:700; }
+  .detail-actions{ display:flex; gap:6px; }
+  .detail-actions span{ font-size:9px; font-weight:700; padding:6px 9px; border-radius:8px; }
+  .detail-actions .gray{ background:#262626; color:#fff; }
+  .detail-actions .green{ background:var(--emerald); color:#04150e; }
+  .detail-card{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .detail-title{ font-weight:900; font-size:14px; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--line); }
+  .photo-box{
+    position:relative;
+    width:100%; height:230px; border-radius:10px; margin-bottom:10px;
+    background:
+      repeating-linear-gradient(0deg, #d8d2c4 0, #d8d2c4 24px, #c9c2b0 24px, #c9c2b0 25px),
+      repeating-linear-gradient(90deg, #d8d2c4 0, #d8d2c4 24px, #c9c2b0 24px, #c9c2b0 25px);
+    display:flex; align-items:center; justify-content:center;
+    padding:6px;
+    border:1px solid var(--line);
+    overflow:hidden;
+  }
+  .beetle-photo{
+    height:100%; width:100%; object-fit:contain;
+    opacity:0; transform:translate(160%, -70%) rotate(-70deg) scale(1.6);
+    transition:opacity 1.8s ease, transform 1.8s cubic-bezier(.15,.6,.2,1);
+  }
+  .scene.show-visual .beetle-photo{ opacity:1; transform:translate(0,0) rotate(0deg) scale(1); }
+  .field{ margin-bottom:8px; }
+  .field label{ display:block; font-size:9px; color:var(--text-dim); margin-bottom:3px; }
+  .field .val{ background:#0e0e0e; border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:11px; color:#fff; }
+  .field .val.blue{ color:var(--blue); font-weight:700; }
+
+  .rec-card{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:10px; }
+  .rec-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .rec-head b{ font-size:12px; }
+  .rec-row{ display:flex; font-size:9px; padding:5px 0; border-bottom:1px solid var(--line); color:var(--text-dim); }
+  .rec-row span{ flex:1; text-align:center; }
+  .rec-row .up{ color:var(--emerald-soft); }
+  .chart-card{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 8px; flex:1; }
+  .chart-card svg{ width:100%; }
+  .actual-line{ fill:none; stroke:var(--emerald); stroke-width:2.2; stroke-dasharray:220; stroke-dashoffset:220; }
+  .scene.show-visual .actual-line{ animation:draw 1.6s ease forwards .2s; }
+  @keyframes draw{ to{stroke-dashoffset:0;} }
+  .ideal-line{ fill:none; stroke:var(--text-faint); stroke-width:2; stroke-dasharray:260; stroke-dashoffset:260; }
+  .scene.show-visual .ideal-line{ animation:drawIdeal 1.2s ease forwards 1.7s; }
+  @keyframes drawIdeal{ to{ stroke-dashoffset:0; } }
+  .chart-legend2{ display:flex; gap:14px; margin-top:8px; font-size:9px; color:var(--text-dim); }
+  .chart-legend2 span{ display:flex; align-items:center; gap:5px; }
+  .dot-solid{ width:12px; height:2px; background:var(--emerald); display:inline-block; }
+  .dot-dash{ width:12px; height:0; border-top:2px dashed var(--text-faint); display:inline-block; }
+  .vline-h{ stroke:var(--emerald); stroke-dasharray:3 3; }
+  .vline-e{ stroke:var(--pink); stroke-dasharray:3 3; }
+  .axis-label{ fill:var(--text-faint); font-size:7px; }
+
+  .unplaced{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:12px; }
+  .unplaced-label{ font-size:9px; color:var(--text-dim); margin-bottom:8px; }
+  .unplaced-row{ display:flex; gap:6px; }
+  .mini-node{ flex:1; background:#0e0e0e; border-top:3px solid var(--pink); border-radius:6px; padding:6px 4px; font-size:8px; text-align:center; color:var(--text-dim); }
+  .mini-node.b{ border-top-color:var(--blue); }
+  .tree-area{ position:relative; flex:1; width:300px; max-width:100%; margin:0 auto; height:170px; }
+  .tree-area svg{ position:absolute; top:0; left:0; width:300px; height:170px; z-index:0; }
+  .tree-area line{
+    stroke:#333; stroke-width:1.3;
+    opacity:0; transition:opacity .3s ease;
+  }
+  .scene.show-visual .tree-area line{ opacity:1; }
+  .tree-area line:nth-child(-n+5){ transition-delay:.55s; }
+  .tree-area line:nth-child(n+6){ transition-delay:.95s; }
+
+  .tnode{
+    position:absolute; width:74px; background:#0e0e0e; border-top:3px solid var(--blue);
+    border-radius:6px; padding:6px 4px; font-size:8px; text-align:center; color:var(--text-dim); z-index:1;
+    opacity:0; transform:translateY(-56px) rotate(-6deg) scale(0.8);
+    box-shadow:0 0 0 rgba(16,185,129,0);
+  }
+  .tnode.f{ border-top-color:var(--pink); }
+  .scene.show-visual .tnode{
+    animation:cardDrop .6s cubic-bezier(.25,.85,.3,1.2) forwards;
+  }
+  .tree-area .tnode:nth-child(2){ animation-delay:.05s; }
+  .tree-area .tnode:nth-child(3){ animation-delay:.18s; }
+  .tree-area .tnode:nth-child(4){ animation-delay:.45s; }
+  .tree-area .tnode:nth-child(5){ animation-delay:.72s; }
+  .tree-area .tnode:nth-child(6){ animation-delay:.85s; }
+  .tree-area .tnode:nth-child(7){ animation-delay:.98s; }
+  @keyframes cardDrop{
+    0%{ opacity:0; transform:translateY(-56px) rotate(-6deg) scale(0.8); box-shadow:0 10px 16px -6px rgba(0,0,0,0.6); }
+    70%{ opacity:1; transform:translateY(3px) rotate(1deg) scale(1.04); box-shadow:0 4px 10px -4px rgba(0,0,0,0.5); }
+    100%{ opacity:1; transform:translateY(0) rotate(0deg) scale(1); box-shadow:0 0 0 rgba(0,0,0,0); }
+  }
+
+  .sel-row{ display:flex; gap:6px; margin-bottom:10px; }
+  .sel-box{ flex:1; background:#262626; border-radius:8px; padding:8px; font-size:10px; text-align:center; }
+  .risk-card{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px; }
+  .risk-label{ font-size:10px; color:var(--text-dim); margin-bottom:4px; }
+  .risk-value{ font-size:26px; font-weight:900; color:var(--red); }
+  .risk-bar-track{ height:6px; border-radius:3px; background:#2a2a2a; margin:8px 0; overflow:hidden; }
+  .risk-bar{ height:100%; width:0%; border-radius:3px; background:var(--red); transition:width 1.4s cubic-bezier(.2,.7,.2,1); }
+  .risk-note{ font-size:9.5px; color:var(--red); font-weight:700; }
+
+  .scatter-meta{ font-size:9px; color:var(--text-dim); margin-bottom:6px; }
+  .species-select{ flex:none; background:#262626; border-radius:8px; padding:8px 10px; font-size:10px; text-align:left; margin-bottom:8px; }
+  .scatter-legend{ display:flex; gap:10px; margin-bottom:8px; font-size:9px; color:var(--text-dim); }
+  .scatter-legend span{ display:flex; align-items:center; gap:5px; }
+  .sq-blue{ width:18px; height:9px; background:var(--blue); border-radius:2px; display:inline-block; }
+  .sq-pink{ width:18px; height:9px; background:var(--pink); border-radius:2px; display:inline-block; }
+  .scatter-card{ position:relative; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 6px 4px 4px; flex:1; overflow:hidden; }
+  .scatter-card svg{ display:block; width:100%; height:100%; }
+  .axis-num{ fill:var(--text-faint); font-size:8px; }
+  .axis-title-y{ position:absolute; left:-2px; top:50%; transform:translateY(-50%) rotate(-90deg); font-size:8px; color:var(--text-faint); white-space:nowrap; }
+  .axis-title-x{ text-align:center; font-size:8px; color:var(--text-faint); margin-top:2px; }
+  .grid-line{ stroke:var(--line); stroke-width:1; }
+  .scatter-dot circle{ r:3.4px; opacity:0; transform:translateY(220px); transform-box:fill-box; transform-origin:center; }
+  .scene.show-visual .scatter-dot circle{ animation:dotRise 1s cubic-bezier(.15,.75,.25,1) forwards; }
+  .scatter-dot.blue circle{ fill:var(--blue); }
+  .scatter-dot.pink circle{ fill:var(--pink); }
+  .scatter-dot circle:nth-child(1){ animation-delay:0s; } .scatter-dot circle:nth-child(2){ animation-delay:.05s; }
+  .scatter-dot circle:nth-child(3){ animation-delay:.1s; } .scatter-dot circle:nth-child(4){ animation-delay:.15s; }
+  .scatter-dot circle:nth-child(5){ animation-delay:.2s; } .scatter-dot circle:nth-child(6){ animation-delay:.25s; }
+  .scatter-dot circle:nth-child(7){ animation-delay:.3s; } .scatter-dot circle:nth-child(8){ animation-delay:.35s; }
+  .scatter-dot circle:nth-child(9){ animation-delay:.4s; } .scatter-dot circle:nth-child(10){ animation-delay:.45s; }
+  .scatter-dot circle:nth-child(11){ animation-delay:.5s; } .scatter-dot circle:nth-child(12){ animation-delay:.55s; }
+  .scatter-dot circle:nth-child(13){ animation-delay:.6s; } .scatter-dot circle:nth-child(14){ animation-delay:.65s; }
+  @keyframes dotRise{ 0%{ opacity:0; transform:translateY(220px); } 100%{ opacity:1; transform:translateY(0); } }
+  .modal-card{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  .modal-title{ font-size:14px; font-weight:900; margin-bottom:8px; }
+  .modal-desc{ font-size:10px; color:var(--text-dim); line-height:1.6; margin-bottom:10px; }
+  .modal-btn{ width:100%; padding:11px; border-radius:10px; text-align:center; font-size:11px; font-weight:700; margin-bottom:7px; }
+  .modal-btn.green{ background:var(--emerald); color:#04150e; }
+  .modal-btn.gray{ background:#262626; color:#fff; }
+  .modal-btn.amber{ background:var(--amber); color:#1a0f00; }
+
+  #s1 .visual{ align-items:center; justify-content:center; text-align:center; }
+  .hero-logo{ width:64px; height:64px; margin-bottom:16px; }
+  .hero-word{ font-family:'Zen Maru Gothic', sans-serif; font-weight:900; font-size:38px; color:var(--emerald); }
+  .hero-by{ margin-top:6px; font-size:11px; color:var(--text-dim); letter-spacing:.05em; }
+  .cta-btn{ margin-top:20px; padding:14px 30px; border-radius:30px; background:var(--emerald); color:#04150e; font-weight:900; font-size:14px; }
+  .url{ margin-top:14px; font-size:10.5px; color:var(--text-faint); }
+
+  .hint{ margin-top:4px; font-size:11px; color:var(--text-faint); letter-spacing:.04em; }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="stage-label">Beetle Base &nbsp;/&nbsp; Promotion Reel</div>
+
+  <div class="phone" id="phone">
+    <div class="screen">
+      <div class="notch"></div>
+      <div class="progress-row" id="progressRow"></div>
+
+      <!-- Scene 1: Hero -->
+      <div class="scene active show-visual" id="s1">
+        <div class="visual">
+          <svg class="hero-logo" viewBox="0 0 64 64" fill="none">
+            <path d="M32 8c-3 0-5 3-5 6" stroke="#10b981" stroke-width="2.4" stroke-linecap="round"/>
+            <path d="M32 8c3 0 5 3 5 6" stroke="#10b981" stroke-width="2.4" stroke-linecap="round"/>
+            <ellipse cx="32" cy="30" rx="13" ry="19" fill="#0e0e0e" stroke="#10b981" stroke-width="2"/>
+            <line x1="32" y1="14" x2="32" y2="46" stroke="#2a2a2a" stroke-width="1.4"/>
+            <path d="M14 24c-4 2-7 6-8 11" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M50 24c4 2 7 6 8 11" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+          <div class="hero-word">Beetle Base</div>
+          <div class="hero-by">made by MH</div>
+        </div>
+        <div class="copy-full"><div class="copy-line">個体管理・血統図・成長記録を、<br><span class="kakko">これ1つで。</span></div></div>
+      </div>
+
+      <!-- Scene 2: List view -->
+      <div class="scene" id="s2">
+        <div class="visual">
+          <div class="app-brand"><div><div class="app-name">Beetle Base<span class="app-by">made by MH</span></div></div></div>
+          <div class="btn-row">
+            <div class="chip">規約</div><div class="chip">保存</div><div class="chip">読込</div><div class="chip">アイコン</div><div class="chip green">Excel</div>
+          </div>
+          <div class="tabs"><span class="on">一覧</span><span>血統図</span><span>交配</span><span>散布図</span></div>
+          <div class="eyebrow">FEATURE 01 — 一覧管理</div>
+          <div class="filter-row"><span class="filter-chip">▼ フィルター</span><span>75 / 75 件</span></div>
+          <div class="table-card">
+            <div class="trow head"><span class="tcell name">個体名</span><span class="tcell">最終記録日</span><span class="tcell">羽化サイズ</span></div>
+            <div class="trow"><span class="tcell name">583920</span><span class="tcell">-</span><span class="tcell">85.7mm</span></div>
+            <div class="trow"><span class="tcell name">719204</span><span class="tcell">2025-01-26</span><span class="tcell">83mm</span></div>
+            <div class="trow"><span class="tcell name">305961</span><span class="tcell">2024-10-16</span><span class="tcell">47mm</span></div>
+            <div class="trow"><span class="tcell name">462817</span><span class="tcell">2024-10-16</span><span class="tcell">79mm</span></div>
+            <div class="trow"><span class="tcell name">847103</span><span class="tcell">2025-02-14</span><span class="tcell">81mm</span></div>
+            <div class="trow"><span class="tcell name">291658</span><span class="tcell">2025-02-14</span><span class="tcell">76mm</span></div>
+            <div class="trow"><span class="tcell name">630475</span><span class="tcell">2025-06-30</span><span class="tcell">-</span></div>
+          </div>
+        </div>
+        <div class="copy-full"><div class="copy-line">検索も並び替えも、<br><span class="kakko">指先ひとつで。</span></div></div>
+      </div>
+
+      <!-- Scene 3: Detail view -->
+      <div class="scene" id="s3">
+        <div class="visual">
+          <div class="detail-topbar">
+            <span class="back-link">← 戻る</span>
+            <div class="detail-actions"><span class="gray">血統図へ</span><span class="green">編集</span></div>
+          </div>
+          <div class="detail-card">
+            <div class="eyebrow" style="margin-bottom:10px;">FEATURE 02 — 個体カルテ</div>
+            <div class="detail-title">詳細情報</div>
+            <div class="photo-box">
+              <img class="beetle-photo" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHCAkIBgoJCAkMCwoMDxoRDw4ODx8WGBMaJSEnJiQhJCMpLjsyKSw4LCMkM0Y0OD0/QkNCKDFITUhATTtBQj//2wBDAQsMDA8NDx4RER4/KiQqPz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz8/Pz//wAARCAEEANkDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDtFtUVcyyfgKbKltvjcJ80TblIPeoi5PU5poYHOD0rmNS01yx6cVEzFjyTUQINOJHGDg0ABOKIJCk2T0NIepzTCPl9cUAXpx8wcdD1+tRdafauJoSjHmmEYODTQhRxSBsseKWkPSmAtJQe1HGKAGtwcirSnzoP9pearGiCQo/tQBIKQmnS/K2R0PIqM470AOzijdxQqO5wik1MlmesrhR3AoEVtwPA5p8dvM5DBcAdzxVtTDC2ETP+11qOW4c9OKBknlKxAfnHccU3zVT/AFS4+lQwykPhmz9adMNjZH3TyKQxHdmPLYHpUeOvQ/WlzmigBPrTWFOpMUAMQ7Xqf7RJ/wA8x+YqFx6U3LUWArEkDIpVbOeP/r0sqBWZecflULDgADj0pASA4PX8KFY7utNB4pqriQvluRjbnikBNknqaRSGHGQAcc0m7nHQmlGfWmA+F/KlDE4BODV2cZIcdD1+tZ5Wrtq/mQmNjz0/woAaD82BS44pFXDYI5rE1XxHFBeCw01Be6gxwUQ/LH/vEfy/lVbiNvFI1VLFbyOAnULlJpmOcIm1U9h6/U1cRHk+6PzoAjJwaafYc1bW3RRmV/wFL5sUYxEozSAilZlsyzoxKjIA6mrSxwRqGcZbHeqy3DeZ82MUtxlXDgZVuaALLXPGEGBUDSOx5J+lNU55xWZrGq/2Q0E88e6xc7JJF5aNuxI7g9KdgNUmmnJqK2uIru1juLdw8Ui7lYdxUooAjfg1ZjPmwbe46fWq79eaIXKS46D1oAcowT157UtSTqMh16Hr9aiBpDFxzRilFHUZBzTAY3FMx9akakoEQ3AEkIdQTjn8KqfxVNp8owYic4/l3FNnjMUhXqO1QURPwDjA9KCSF9z70hBI5pDznHPGKAHfKwVgd2DkEVMCKo2dmts7yBmy/LLn5QfYVbG5jhQSfahAyQsAR70+F/LlB7HrSxWsjcthB71S8SajBoOiy3Qw85+SEN3c9OPQdfwqlqIw/GniBjctpGnSlJCv+lTJ1Qf3V/2jWp4M8PR6XpCyOmya4+dtwy4B6A++OtYPw60xX3a3fSjzGkKxF2HzMeCTnvnpXcu79CScVb00JXcmJgh+6u5vU81XmnkY5UAHpmgscgBc56n0pQM1AxgLMo3kk+9B6YzT8Uw0AJyatwkSwmM9R0qrz2p8bFJARTAk6VFe2sN7Zy2twoaGVSrD+tWJx0cdG/nUfU88igDjPB+qtBqNx4fu5Nz2zskTeuO38/yrtMetedfECxm0vXLXxBZnbvYCQjs46fmB+hrvNNvY9Q063vIfuTIGHt7VT7iRYIzTHHcU80wnmpAnhIljKHrUJBVsd6RG2PmppipIYdSOaBjRx1pSeKWOOSX7i8etWUtUUZmfPsKAKQyxwoJPtT/In/55mrfmxxgrEopvnv7UgOdRmRw47Grko8yISKeAP0qskUkn3FP1NW4Y/Ki2Md2ew9KkoplxnAGTU0cMjkcbR71OTFAcKuD19TUT3DMeOKAJ1gjQ5kOfbpT/ALRGoxGo+oqiWZjknNOXpjtQBZaZm74Fea/EXUVk1WO1Zm8u2TJA7s3/ANbFeiLXj/iqTf4rviwDDzyOfQVrTWpEnodf4CguLpYr+/DeVbDyraIn5V9WA9feu+nAOHHfrWB4dQL4dseuXiDnI555/rW5ZssgYN1xt5Papk9RojLAA5wAOpNAYHBB4pXGGKsgPrmkx9B9KQAW5xnmkzz1zRwD70g3c7sde3pTAUuBwcj3oIJ5FBweoo6dKALduwkjMZP0+tMAwxBqGN9j5q1NhgJB36/WgDmvGYtrzQ7qxkI+0CL7REDxnaecHucZ4rO+Gt4ZdDls3OWtpPl/3W5/nmp/iFGP7EgugQGhuApP+y4II/lWR8P8prs9tEv3ojkDvgjBq18JPU9B4ximEEt8oq4lmOsr/gKk82GIERjJ9v8AGouMqx2kjjL4Qe9WVRIyFBzjrmoXndjgcA+lQhyr5oGXZZmzhRjFQMxJyxJp7fNGGHbrUJwaQC59KN1N74ApeaBlBrknIAwKgaZlIbcfzpvQHFMb5hSAvTASQh15wP0qsDUtlICpjbt/KonUxSMp7dKAHUoI7Go80D1oAmVua8g8Xp5XivUEIxmTePxANes+YqkFmwOlecfEmyMGsQXyA4uEw3+8vH8sVcHqTLY7PwhdfavC9kSRujXymwe6nH8sVuRv5cgPbvXDfDu4Xy7q33HnbKgycYPB/kK7OQny2243Y4z0zRLRjWxpTfNhx+NQk8Vy8B1ca0LW11GaSL7MZnMqBgWzwBx0J/LmumOQSGGCOtKwCKuDnvS0gIGB2oJ7UAKKXIpgyThQSfap0tHIzI2wfrSAgJ+THrVy2DPEQwwp4yRUipbwAYAZh3PNNa4JbpgUAcl8UYki8KRIXJaS4XvjgAmsP4bMx1uWYDO23PX3IqP4m6kL/V7fTYDlbdfnI/vH/AYrb+HliIbG4usf61gin1ArTaJPU7JnZ+WJpp5FKRwc9KKgob0601hxUhppwaAH2z87T0pzrtYjt2qsPlcGrefMi46ikBHjNJs96QcA0tMDH579KMU7FIGDZA6ipGRAlHyuRjqRVydfMiEg6AD8RVWQVPayAoY26D+VAEBOBnPApp5AwTjrxT5EKSFD2phPIHrQA8HvWJ4w07+1dAlRFzND+9j98dR+VbBOBxSZIxTTsFjy7wlqh068WRuVX5JF7lD/AIGu5tvEtpJqU8EsiRQDb5MrZG7I5B9Oa5TxboD2F22pacv+jucyIB/qyf6GsNLnzofn4kXgg/zraylqZ7Ho3h3WRe63e7oxHJCqoqhg2VycnI47iusmO5Q4+hrxrRdcu9JldoY4njkPzBl5OPfrXSQfEaRTGraWrLnB2zHke2RUODKujvUSST7ikj17VOlsFbdNICuOAOOfrXG6t8QrWOwVtLQyXMg+7IMeWff/AOtUeh+Oba7iZdXZLaZRndztb6VNnuUd0LhIxtjA9uMf/rqAzPK5yflU9u5rhZfHtmusKYhObIx7X3RgENnhlHX86uTeOtGit8wefK2OFEeM/U0+Vk3R2KvUOoXcVjp813cHEUSFj7+3415hdeN9TvS6QMlvEwxhRyB/vHmsa81a6uLGPT2uJGs0Yseep9vWqUGK5c02K41nUpryQFnmk49yT0H8q9f06wXTbGGzTGIlxkdz3P51yngjS3jtILyaIIi8wrjBOf4j7AcD8TXcMd8YYdR1pTfQaG0u2kBx0pCxqRimozzS5oB4oAYVA6U62dlchjnnj2pDTc4OQaALMq4bI6Hmo8ipFcSRhe/aodh9DQBnU08UYJfrxSEAZwKkY1mBHp9aYrlJAw7UMccd6aT60AW7kB4xIvJHB+naqhqe2kBUxt/kVCIiZCu4ADvQMbuoCu/3FqfZFEMscn3/AMKjkus8IOnr/hQA1oFEbeYQwxyO341xvirQ9Lt7Ga7tSLd1P3OqE+3cH9K6uR2bljmuV8dtINEiWNSUaYbyO3BxVRvcl7HCLOXgROjKeWz1q5BJbW65YtLJ7DFZXKt9KnRyxAVj9K6DIkkIEu/BGeW570xmBJIH0zT5kMSAkkhu2agVsmmAquwJ3fgaJGYx4UHrkgVNBE8p2gfKepxWvDaQ28W5BufBy3cUmCDStFvLm2Q2tlNM7jkmM7fzNdj4d8CiGZbvWmWZ15W3U5Uf7x7/AErV8DMx8OpukZh5jABj932rox+VYuT2NEh2MDAGB6CpIJQp2nkelRdcgjjFIPlbNQMncFWINJT8h4Qf4l/lUWaBjzSZqMtjp1qRYZWGSCAB+JoEMZvSiOGWXkLgep4FXEhhiQM4+bH8X+FElyeiD8T/AIUXAbHAIlyxyx/AU/capyMzNliT75o81vekMz8Ac9/rUbN3qbyXJAchAemev5Upt1TmRgfQdKQWKyxvITsUmnCBQT5rgEdhUzzYG1enoOBVaSR2Jz07YpjHM8acKCAeuOtJKCsW5D9ahcZFPgbKFG7fyoArk5600mlkBR2U9qiJ5xTEKW4rO1u0N/o9xAm7eV3KAcbiOQDV0mqOqytHpF46nDCJsH8Ka3EeVSqVcg9afAVWRW7jt60xzlj9aIyFbJ6V0GRoX9xFPbjyxhqzgjdqGYMepq0bacRAmPf7jrQBo6TPbpEEkOGHJJq7NPA8biAH5h8znisO1AVvnVgfpWtZW0l9MltEvzyMAgPGT7+1JjR6b4UmtZNCgFo5fYP3meu7vmtpSSTnp2qG2hjt4VjiRUAAHyjGeKmyAPeud7mg/dximsc00ZbhQST2FWI7J25lO0enegCOCTD4HNWEtWc5LAKfTk0u6CAfuxlvUc/rQJSyHbkd85oAmCwwDgfN69T/APWqN52P3fl9+9Q59KDRYY1ixYEH6570mT3pxFGDRYBp6U3n1/SnlfrRikBUaQ5yihc9+p/OoXPOSae1QSN60ADNUbdOKz9WVbq0e3S6EM3DKVcBsjkfyrJ/tnUba6t7J7NJXIUO3m7mwTjJwOKdhnQnoRUeSjgg8U99xBxwahAIQbzlsc0gJbiP90rgltvBJ6mqbsFBLHAHerkDhkKN0xj8Koz5jLAqSR2HegTGMc49uRWbr+DoV314UH9RV8nvWR4nMn9gzmI4AK7x6rn/APVVLcTPO3+8abilPWjvXQZAVzXUW80caRoPvbRWAnl+QScbumM06CdhIuTwKBm5MDngDHsaveGtw8RWXlqGIk6E9scn8qy0l38jk1s+DyB4mtmdC6hipHpkEVL2Gj01FeRsRqWNWo7MfemcfQHj86DcrHHgAKB68Comkd2+Zs1gWW1ljiBWJQfpx/8ArqOWVpBhjx6CoRTESYXDs0waJh8sZQZU/X0pgSFRilifY3OMe9I1NbpkdaALEq7WyPunkVHu4qWMiWHb36iosc0gBaf2pF9+KUmgYYo20gJyaKAM9hwap3BKg7Rn2q2wYlcdO9RSpmkB5X4haW4na/d4kclo1iz+8IBIycDiuk8PXTWOjLPLprxwt8xmhcSFvcjOas+I9BOoqvkIqyclmDbTnjr69K0dFtZLTSILeVNjRrjG4H+VW2AqanZTQmWO6iKDljuA2/UHpVKXX9JRiGv4sjg9f8KszaVYzOzzWcLuSckpnOaqTaJpzzmaSziY4A27cAAewpaBqU38V6QjApdNweQIyciq134y052HkRTyHoTgDNbC6bp6KNljbj/tkKmhjgVSqQxJ/uoBxReItTkrvxYI2wtpt+Xd+9fB/lWbceKpry3lga0iWORdpyxPWuwu4IXlzPDHIy8AugJ/WuN8VmH7fFEirGET5tigck+1XGzJdzAKMByD+FN5z0pSecZzg0gJVga1IHLyehI704ZHXA+pAp4bcQQAQxxjHNX4Lb982UAX+7jpQBBazsGChlK/7wrV0rXv7C1F7xLUXO1SgDOVC56np+FL9lhkUAouR3xVvSbaKPX9PEsaSRNKAyuNwIJxyDSY0a9j8RluMi/0weTnAELbiPqD1rr9L8QaVqW1be5CynpFKNjfr1/CiPw9p1pqMN1awLA0aupVFwsgb+964qjqXgvSr3c9sHspSckxcqT/ALp/pisvdZep03fBpevSuF/srxVohB069F/bKc+STzj0wf6GpofHaQSCHWNNntZR12/4HBosB2lLiqcGpWNwYfJu4ZDN9wK4JPGf5Vc7ZHSpGETbH64qaVeQwHDfzqu3rViNw8ZQnH19aAI80pPpTCcHnikUBUIUk8k8nNIB5b5sY/GjNNLDvS5oGU8VGw45qadDG4ychhnNQu20ZNICLb1zTCOKlOeMd/WkIxQBCVxzUMi81OWBJHBxTRG8h+Rc+ppgUnXFQgYfKjNabWqgEud2OuOn51VndEGFGfYcCkBQnUOwJzkdcd6898UMj61cFCMJtU4PfFegO+7OeM8HFeb62MaxejuJTWkNyZGX3pcdKCOacvpWxmW9LCm+HHAP+Na0e95WLADnpms/Ro8345Hf+RrcMlvBkSSopJ6DrSGPWDYhc9B0pLIn+3LTLY2yLjPTrVvfHPEFj5OMk4xxVGyjafVYtuRhw4/A5qXsNbnr/wDrI9wHTkUwNj0pllJtcofwqSZdkox90jIrIsdnmql/ptlqGz7bbxzFM7d4zjNT5x3pQc9aAMl/DOkPbGP7BFuA4YZUkjPUj61zt9oupaNo9zqCXBWWLZtSGUhVGfmP8q7tcAf1qOSCCWRXliR2XoWUHFO4EOktcSaPaNeBluDEC+/rn3q2jbT7UhcetCRPIcqMKO54FICebDDeO/X601IpHA2jC56npVmKPywueQeuRxT5ZyDhByOMt/QUgGxwRRjL4Y+rf4VL5sXqf++RVRnLEljn3pM+xoGV5gJrbcvBAyvt61T4OM9RUlkw3lTyV5X+tSNasZGO4LGehNICsTSrBLKMgYX+83FW/LhgIyOT3f8AoKZLdcYQf8Cb/CgBgtYo13P83u3A/wDr1FNOoG1BuHbsPypkjsxy7En3qI0AQTyO33jwO1UZTV2SqE5xkngDnNMCnI2H9uhrzrVyTq99u6+c1dFrfiH7PLJFaRLIUO1pXPyg/h1rkZ7h7m4eaTG+Q7mwMDNaxREmRjk1IFJNR9Gq5ahWB3VoQIhaBA6MQT3pokaRwWbJJqS6YGIY4AA6fjVeJTvAOR3pIZ2OmQGW2mIPzBQP8/hUNgzLq8KRDgyKjEehIzUmk3qW+iyJn5zJyepxjpU3hYLJrCbsZLrgfjk/yqZaIcdz0fG1gw6g1eJEtvlRkgZH9RVOpbWQq23OOcisSxj5GAFzn9KkwOgPIp84CvkfdPIqOKKSX7vA/vGgB24U+OGSUZUYX1PSrENvHGu6XqO79/oKke4H/LMY9z1/+tTAYlrHFhpMN7t/Qd6Jpgwwg6dz/hUTOWbJOSfWmH60gFWVg2SSc9asSkugcdehqrtNTwP2boRg0DGFjS5FKwIYjjHt3puf9hv0oAYRDbZwArfm3/1qGyIGaM84znHOKovzViylypjb+H9RSAgJLHJOSe5qJievep5l2SFfy+lQkYNADS2frUbY654p74JqMnC8CmBE9cz4p1E2sSWluxFxcDqvVF6Z+p6CtzVbo2mmz3CsgaNMjzM7SfTiuX8N2kutazPq17jETjCA5Absv0A/WqS6iYieGrWJLeSaLMiDLqTlSff6VzPie38nVN6oFR0GMDAyOK9Puocg8VxXi6zY2yzoOYm+b/dP/wBfFVF6ia0ON70+OQoDimkY4oA4J447ZrUzJC7EDmniUl9xAB9qiJz2A+lKKQzZ02ZQrswXAxwe9anhzU7Ox1iGe/fYkpZVfsp9T7dq5qBmAdMdep9K6eHwPfan4ftb21IW4JJ8uVtqlD0x79/xpO3UaPTVYMu4HIPQg8YqaGCVyG+6o/iasL4dXEM3hzyn4mtJWicO27bzkY/z2rqHuMD5Bz/ebk1g9HYskRAMK3zgchmH9KY8/l7jEMZOST/T0qK3nbzMMxJPIz606Up5pCMOgJX0oGQm5AdQ5O5hkc5zUhJJ4ppC/K20MR046Uq4yQetACqQ4yMgg88UuVcHA4FIWA70ijJ5GMnn3oESAZTctNU4YVKeMAUxwcggDHemBKqnyvmcuwJOcY47flSZ9jSRSADDHAqXyof7360hmMTTYpDHMr9PX6UvtUbDApAX7tcwiQAkrwcdx2qmQc1aspBJDsf+Hg/TtUDqY5WRuqmgCIjJ6cVA3BIqd264rJ1q4MFi0cOWuZwY4EU/MzH0+nWmBha/cvq2rQ6HZNn5907jtjn9Ov1xXWwQQWFpHBDHtiQBQAP1NZPhzQBo8txI7+bLMq5kPUf3h+fNb2M02+gitLHnrWRqNis8Lxuu5WUg1usOtVgBLGH2suezDBFK4zxzUrCWxvHt5Qcg/K2OGHrVQRt6V65qWk2uoReXcRBh2PQj6GubufAl4AHsrlGQ9FmBU/mK1U0Q4nEeW2M44PSlRB5g3gFe+Tius/4QrWRjd9mB95T/AIVdsPBMhdv7SuQF6BYR1/E9Ofam5ISRh+FtMXWtXWGUiO3X97NjuoI+UfXP869himCOojXCjhT6ewHauf0jSINIE32d5XEuCwfB5FaPniEGVsCJMlyewArKTuaWscZ8PbtYdc1K1eUgSyEIm3OWDHnPbjNei7t65XP48V554G8r/hNtV2pkMGeMlcEKWBH6GvR8KBxTluJEJOCDUlxbC8iVkkeGYfdkjOCPUeh/GkYZBxTrdiHKE4z0PvUDJRgADrRtBOehp0qYkEgGFYdPek7UwI2XJxmpnUiOLcxYj0qF1O04OD2NNI3Kd7MFoBE4VdxYZyRjOad1U/WmjgD0pZMhcIRn36ZpiG5w2cVJ5i+lRnpg03igDPJwaY7cGnP0zUJBzUjJIJfKmBP3W4b6VavMmMSDqPlb+hqky5p8lxL9l/dQ+cxG1lLhfocmmBBcNL5Dm3VGmx8iucKT7ms/SIXvL+XVrlV248u1TqFUdWH1Pf0rkdU8TX8k7W6vDDA6HJicMSMcjd2Pb2rvdLnguLCF7UjyVUKoHQY4wPWq2QFwDINAXHU5pD1z0qaK3klGQAqf3m4FSBXZhnFOjtpJcHG1f7xq8tpHCA+cn+83T8BRJP8ANhBkjuf8KQEUdvDAcvgn+839BTWIeVQc4PGTSOy7su3zeppsgJ5FIY+6jCgMB14P1qo4BI9Kvo4kg+ZlXsS3r2quyjPPWmIrSBtnyY3ds1Vu9MttQEaXQLKhJ2hsBsjv7VdaM5yWOPT0qrdTPaqZ0tZLlwQuyMjJHrzQNHN6WEtPirewqu1JYflAH+yp/oa7wDJxz9e1cL5FwPidZ3Uy+UbiMlUJz8oXGMjvnNd6p4qmSNKmoyNp681YPSopFDcEUgLcGJodo6/XvUfINR2rCN9ucZ6GrNwMMHUYDfzoGR8dDSjaBkU0nrxmkLcUxDmIxxzUWcsrZyBQSzHCgknsKsQWZJ/ef98g/wA6AI1VpG2oCaf9lm/2fzFW98UQIUbj6D7v/wBemfaW/wBn/vkUAYJxjFNKnPFKRnvT+gqRkZI6d8U2E4l2n7rcU84NPjtZZvmA2qP4m4FMDkPFfh+9vLt7rdbpZqoAAyCMctkY7102laattZRx2yBIQB83Y8da10U7lXaHBxksOM+tJJcBPliGWHGWHA+gouBJFbRQqHbDf7b9PwHelkuRn5AWP95v6CqrO0jZdiT70m4ZwaQD3dmOSSaikZVXJBOTjgU7PHWkIJHrQBG4YjKgE+9SAnb83pSgY4FHOP60Bcqy2VrduiXcKyoGDKG7HsavzRKmGUYB4xjoaryKWUhW2n1x0q9Hma3wTkkfqKAKLKW7VXljywByQDyBVkHLHAOaRgd3tQCMnxLGyabHfQA+bYSCcehUfeB/4Dmtm1ZJY0micNDKgZOPXn+tMJieNlYqVOQQfpzVDwjKJvDVlJycJsyT1Ckgfyp9ANrHpTSKcDTWIFMRG3Tmr0TLJDsJ5PT61RZh2qzBG6qSwwD0z1pAR7hux3NTpayNgtwPTvUyeWv7wrtY+nU/4U1p2KkJ8o/WmBJ+5txgDJ9F/qahknZx6L2A6VCxNN3ADJoAkZjjijP1pFYcYOR7U/IoGY560NRRUiNGzt4haicrucn+LoKsXLGK1EoALk8buQPoKKKBlW2lkd5C7knGeain5uGPvRRQAwdaDwPrRRQAo+7SgcZ70UUCHDg0p4bb2oooAa4xzU1mSGYD0zRRQMW5RRcMQMZ5quwwcUUUwOJ8TahcN4anjyAftHl7xw2ASP1HFdT4dto7TQLGKLO0Qg8nu3J/U0UVT2F1NE5Djk/So3J4+tFFSBfhiSONGA+Zu5pJZXReDySee9FFAyYfPbknrtB/Gqm4iRQDweooooAWTjNRoxZMn1IoooYghPycADkjAqTJ9aKKBn//2Q==" alt="登録されているクワガタの写真">
+            </div>
+            <div class="field"><label>個体名</label><div class="val">23CBF1-2</div></div>
+            <div class="field"><label>性別</label><div class="val blue">♂</div></div>
+            <div class="field"><label>産地</label><div class="val">DV産</div></div>
+            <div class="field"><label>羽化サイズ（MM）</label><div class="val">83mm</div></div>
+          </div>
+        </div>
+        <div class="copy-full"><div class="copy-line">写真も血統も成長記録も、<br><span class="kakko">個体ごとに一元管理。</span></div></div>
+      </div>
+
+      <!-- Scene 4: Growth chart -->
+      <div class="scene" id="s4">
+        <div class="visual">
+          <div class="eyebrow">FEATURE 03 — 成長率</div>
+          <div class="app-brand"><div class="app-name" style="font-size:16px;">飼育記録 &amp; 成長率</div></div>
+          <div class="rec-card">
+            <div class="rec-head"><b>飼育記録</b><span class="filter-chip">+ 追加</span></div>
+            <div class="rec-row"><span>日付</span><span>体重</span><span>成長率</span></div>
+            <div class="rec-row"><span>2024-06-24</span><span>19.4g</span><span class="up">+17%</span></div>
+            <div class="rec-row"><span>2025-01-26</span><span>22.3g</span><span class="up">+15%</span></div>
+          </div>
+          <div class="chart-card">
+            <div style="font-size:11px; font-weight:700; margin-bottom:8px;">成長グラフ <span style="color:var(--text-faint); font-weight:400;">(比較可)</span></div>
+            <svg viewBox="0 0 260 110">
+              <line x1="30" y1="6" x2="30" y2="98" class="vline-h"/>
+              <line x1="220" y1="6" x2="220" y2="98" class="vline-e"/>
+              <text x="18" y="8" class="axis-label">孵化</text>
+              <text x="200" y="8" class="axis-label">羽化</text>
+              <path class="ideal-line" d="M30,98 C65,45 110,20 220,12"/>
+              <path class="actual-line" d="M30,96 C70,60 120,42 220,20"/>
+              <circle cx="30" cy="96" r="3" fill="#10b981"/>
+              <circle cx="110" cy="46" r="3" fill="#10b981"/>
+              <circle cx="220" cy="20" r="3" fill="#10b981"/>
+            </svg>
+            <div class="chart-legend2"><span><i class="dot-solid"></i>実測</span><span><i class="dot-dash"></i>理想曲線</span></div>
+          </div>
+        </div>
+        <div class="copy-full"><div class="copy-line">体重の推移を記録し、<br><span class="kakko">理想曲線と自動比較。</span></div></div>
+      </div>
+
+      <!-- Scene 5: Pedigree -->
+      <div class="scene" id="s5">
+        <div class="visual">
+          <div class="eyebrow">FEATURE 04 — 血統図</div>
+          <h2 class="headline">血統図</h2>
+          <div class="legend-note">🔵 オス &nbsp; 🟣 メス</div>
+          <div class="unplaced">
+            <div class="unplaced-label">未配置リスト（3）</div>
+            <div class="unplaced-row">
+              <div class="mini-node">178264<br>CBF1</div>
+              <div class="mini-node b">934582<br>CBF1</div>
+              <div class="mini-node b">502719<br>CBF1</div>
+            </div>
+          </div>
+          <div class="tree-area">
+            <svg viewBox="0 0 300 170">
+              <line x1="60" y1="24" x2="60" y2="60"/><line x1="240" y1="24" x2="240" y2="60"/>
+              <line x1="60" y1="60" x2="240" y2="60"/><line x1="150" y1="60" x2="150" y2="90"/>
+              <line x1="150" y1="90" x2="150" y2="120"/>
+              <line x1="30" y1="120" x2="270" y2="120"/>
+              <line x1="60" y1="120" x2="60" y2="150"/><line x1="150" y1="120" x2="150" y2="150"/><line x1="240" y1="120" x2="240" y2="150"/>
+            </svg>
+            <div class="tnode" style="top:0; left:20px;">♂親<br>671043</div>
+            <div class="tnode f" style="top:0; right:20px;">♀親<br>289517</div>
+            <div class="tnode f" style="top:88px; left:113px; width:76px;">415698<br>CBF1</div>
+            <div class="tnode" style="top:148px; left:24px;">583920<br>羽化</div>
+            <div class="tnode f" style="top:148px; left:113px;">719204<br>羽化</div>
+            <div class="tnode" style="top:148px; right:24px;">462817<br>羽化</div>
+          </div>
+        </div>
+        <div class="copy-full"><div class="copy-line">カードをドラッグして、<br><span class="kakko">思い通りの血統図に。</span></div></div>
+      </div>
+
+      <!-- Scene 6: Breeding sim -->
+      <div class="scene" id="s6">
+        <div class="visual">
+          <div class="eyebrow">FEATURE 05 — 交配診断</div>
+          <h2 class="headline">交配シミュレーション</h2>
+          <div class="sel-row"><div class="sel-box">25CBF1-A-18</div><div class="sel-box">25CBF1-A-20</div></div>
+          <div class="risk-card">
+            <div class="risk-label">次世代の近親交配係数（F値）</div>
+            <div class="risk-value" data-target="34.38">0.00%</div>
+            <div class="risk-bar-track"><div class="risk-bar" data-target="34.38"></div></div>
+            <div class="risk-note">リスク評価: 非常に高度</div>
+          </div>
+          <div class="risk-card">
+            <div class="risk-label">血縁係数（r値）</div>
+            <div class="risk-value" data-target="68.75">0.00%</div>
+            <div class="risk-bar-track"><div class="risk-bar" data-target="68.75"></div></div>
+          </div>
+        </div>
+        <div class="copy-full"><div class="copy-line">F値も血縁係数も、<br><span class="kakko">交配前に自動計算。</span></div></div>
+      </div>
+
+      <!-- Scene 7: Excel modal -->
+      <div class="scene" id="s7">
+        <div class="visual">
+          <div class="eyebrow">FEATURE 06 — 散布図</div>
+          <h2 class="headline" style="margin-bottom:6px;">経過日数 x 羽化サイズ</h2>
+          <div class="species-select">ウエストウッディオオシカクワガタ原名亜種</div>
+          <div class="scatter-meta">対象: 25個体</div>
+          <div class="scatter-legend"><span><i class="sq-blue"></i>オス</span><span><i class="sq-pink"></i>メス</span></div>
+          <div class="scatter-card">
+            <svg viewBox="0 0 280 360">
+              <line x1="40" y1="10" x2="40" y2="330" class="grid-line"/>
+              <line x1="40" y1="330" x2="270" y2="330" class="grid-line"/>
+              <line x1="130" y1="10" x2="130" y2="330" class="grid-line"/>
+              <line x1="221" y1="10" x2="221" y2="330" class="grid-line"/>
+              <line x1="40" y1="68" x2="270" y2="68" class="grid-line"/>
+              <line x1="40" y1="185" x2="270" y2="185" class="grid-line"/>
+              <line x1="40" y1="301" x2="270" y2="301" class="grid-line"/>
+              <text x="30" y="71" class="axis-num" text-anchor="end">80</text>
+              <text x="30" y="188" class="axis-num" text-anchor="end">60</text>
+              <text x="30" y="304" class="axis-num" text-anchor="end">40</text>
+              <text x="40" y="344" class="axis-num" text-anchor="middle">300</text>
+              <text x="130" y="344" class="axis-num" text-anchor="middle">500</text>
+              <text x="221" y="344" class="axis-num" text-anchor="middle">700</text>
+              <g class="scatter-dot blue">
+                <circle cx="85" cy="80"/><circle cx="90" cy="86"/><circle cx="99" cy="68"/><circle cx="103" cy="92"/>
+                <circle cx="110" cy="92"/><circle cx="112" cy="132"/><circle cx="135" cy="51"/><circle cx="149" cy="68"/>
+                <circle cx="158" cy="74"/><circle cx="164" cy="80"/><circle cx="169" cy="51"/><circle cx="176" cy="57"/>
+                <circle cx="191" cy="28"/><circle cx="228" cy="74"/>
+              </g>
+              <g class="scatter-dot pink">
+                <circle cx="45" cy="295"/><circle cx="83" cy="278"/><circle cx="85" cy="260"/><circle cx="87" cy="266"/>
+                <circle cx="115" cy="249"/><circle cx="135" cy="249"/><circle cx="171" cy="266"/><circle cx="173" cy="260"/>
+                <circle cx="178" cy="260"/><circle cx="189" cy="231"/>
+              </g>
+            </svg>
+            <div class="axis-title-y">羽化サイズ(mm)</div>
+            <div class="axis-title-x">経過日数</div>
+          </div>
+        </div>
+        <div class="copy-full"><div class="copy-line">羽化サイズも経過日数も、<br><span class="kakko">散布図で一目瞭然。</span></div></div>
+      </div>
+
+
+    </div>
+  </div>
+
+  <div class="hint">タップで次のシーンへ &nbsp;/&nbsp; 自動再生中</div>
+</div>
+
+<script>
+  const scenes = ['s1','s2','s3','s4','s5','s6','s7'];
+  const durations = [4200, 5800, 5000, 7400, 6700, 6500, 6500];
+  const copyRatio = 0.6; // コピー→画像へ切り替わるタイミング(シーンの尺に対する割合)
+  let idx = 0, timer = null, switchTimer = null;
+
+  const progressRow = document.getElementById('progressRow');
+  scenes.forEach(() => {
+    const track = document.createElement('div'); track.className = 'progress-track';
+    const fill = document.createElement('div'); fill.className = 'progress-fill';
+    track.appendChild(fill); progressRow.appendChild(track);
+  });
+  const fills = progressRow.querySelectorAll('.progress-fill');
+
+  function resetGauges(){
+    document.querySelectorAll('#s6 .risk-value[data-target]').forEach(valEl => {
+      valEl.textContent = '0.00%';
+      const bar = valEl.parentElement.querySelector('.risk-bar');
+      if (bar) bar.style.width = '0%';
+    });
+  }
+  function animateGauges(){
+    document.querySelectorAll('#s6 .risk-value[data-target]').forEach(valEl => {
+      const target = parseFloat(valEl.dataset.target);
+      const bar = valEl.parentElement.querySelector('.risk-bar');
+      if (bar) bar.style.width = target + '%';
+      const duration = 1400;
+      const start = performance.now();
+      function step(now){
+        const t = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+        valEl.textContent = (target * eased).toFixed(2) + '%';
+        if (t < 1) requestAnimationFrame(step);
+        else valEl.textContent = target.toFixed(2) + '%';
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  function render(){
+    scenes.forEach((id,i) => {
+      const el = document.getElementById(id);
+      el.classList.toggle('active', i===idx);
+      if (id !== 's1') el.classList.remove('show-visual');
+    });
+    // 最初のシーン(Beetle Baseロゴ)は、フェードアウト中も含めて常にロゴ側を表示したまま
+    document.getElementById('s1').classList.add('show-visual');
+    resetGauges();
+    fills.forEach((f,i) => {
+      f.style.animation = 'none'; f.style.width = i < idx ? '100%' : '0%';
+      if (i === idx){ void f.offsetWidth; f.style.animation = 'fillbar linear forwards'; f.style.animationDuration = durations[idx] + 'ms'; }
+    });
+  }
+  function next(){ idx = (idx+1) % scenes.length; render(); schedule(); }
+  function schedule(){
+    clearTimeout(timer); clearTimeout(switchTimer);
+    const currentEl = document.getElementById(scenes[idx]);
+    // s1以外は、シーンの尺の中間地点で1回だけコピー→画像に切り替える
+    if (scenes[idx] !== 's1') {
+      switchTimer = setTimeout(() => {
+        currentEl.classList.add('show-visual');
+        if (scenes[idx] === 's6') animateGauges();
+      }, durations[idx] * copyRatio);
+    }
+    timer = setTimeout(next, durations[idx]);
+  }
+
+  document.getElementById('phone').addEventListener('click', (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    idx = e.clientX < rect.left + rect.width/2 ? (idx-1+scenes.length)%scenes.length : (idx+1)%scenes.length;
+    render(); schedule();
+  });
+
+  try {
+    render();
+    schedule();
+  } catch (err) {
+    // JSが失敗しても、シーン1はHTML側のクラス指定により静止画として表示され続ける
+    console.error('promo init failed', err);
+  }
+</script>
+
+</body>
+</html>
