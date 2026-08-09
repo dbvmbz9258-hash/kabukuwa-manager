@@ -631,6 +631,7 @@
   const quickWordScenes = ['s10','s11','s1'];
   function next(){ idx = (idx+1) % scenes.length; render(); schedule(); }
   function schedule(){
+    if (transportSyncActive) return; // 音楽再生中はTransport同期スケジューラーに任せる
     clearTimeout(timer); clearTimeout(switchTimer);
     const currentEl = document.getElementById(scenes[idx]);
     const ratio = quickWordScenes.includes(scenes[idx]) ? 0.15 : copyRatio;
@@ -642,10 +643,58 @@
     timer = setTimeout(next, durations[idx]);
   }
 
+  // ---- 音楽再生中は、setTimeoutではなくTone.Transportの音声クロックにシーン進行を同期させる ----
+  // (setTimeoutは僅かな遅延が積み重なり、ループを重ねるほど音とズレていくため)
+  let transportSyncActive = false;
+  let transportRepeatId = null;
+  let barsIntoScene = 0;
+  let barsForScene = 0;
+  let switchBarReached = false;
+
+  function barsForDuration(ms){ return Math.max(1, Math.round(ms / 2500)); } // 1小節=2500ms(BPM96)
+  function switchBarFor(sceneIdx, totalBars){
+    const ratio = quickWordScenes.includes(scenes[sceneIdx]) ? 0.15 : copyRatio;
+    return Math.max(1, Math.round(totalBars * ratio));
+  }
+
+  function startTransportSync(){
+    if (transportSyncActive) return;
+    transportSyncActive = true;
+    clearTimeout(timer); clearTimeout(switchTimer);
+    barsForScene = barsForDuration(durations[idx]);
+    barsIntoScene = 0;
+    switchBarReached = false;
+    transportRepeatId = Tone.Transport.scheduleRepeat((time) => {
+      Tone.Draw.schedule(() => {
+        barsIntoScene++;
+        const switchBar = switchBarFor(idx, barsForScene);
+        if (!switchBarReached && barsIntoScene >= switchBar) {
+          switchBarReached = true;
+          document.getElementById(scenes[idx]).classList.add('show-visual');
+          if (scenes[idx] === 's6') animateGauges();
+        }
+        if (barsIntoScene >= barsForScene) {
+          idx = (idx + 1) % scenes.length;
+          render();
+          barsForScene = barsForDuration(durations[idx]);
+          barsIntoScene = 0;
+          switchBarReached = false;
+        }
+      }, time);
+    }, '1m');
+  }
+
   document.getElementById('phone').addEventListener('click', (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     idx = e.clientX < rect.left + rect.width/2 ? (idx-1+scenes.length)%scenes.length : (idx+1)%scenes.length;
-    render(); schedule();
+    render();
+    if (transportSyncActive) {
+      barsForScene = barsForDuration(durations[idx]);
+      barsIntoScene = 0;
+      switchBarReached = false;
+    } else {
+      schedule();
+    }
   });
 
   // ---- 革命的・先進的なイメージのジェネラティブBGM (Tone.js) ----
@@ -813,9 +862,9 @@
         musicPlaying = true;
         btn.textContent = '🔊 再生中（音量を確認）';
         btn.classList.add('playing');
-        // 曲の頭(小節1拍目)と映像のシーン切り替えタイミングを同期させる
+        // 曲の頭(小節1拍目)から、音声クロックに完全同期したスケジューラーへ切り替える
         render();
-        schedule();
+        startTransportSync();
       }
     } catch (err) {
       console.error('music error', err);
