@@ -758,11 +758,20 @@
     snare.volume.value = -12;
 
     // 1拍目・3拍目にキック、2拍目・4拍目にスネア(落ち着いたバックビート)
+    // ドラムは3小節目から入り、「燃料に変えろ」シーン(s10)では小節の頭だけ抜いて溜めを作る
     let drumStep = 0;
     drumLoop = new Tone.Loop((time) => {
       const beat = drumStep % 4;
-      if (beat === 0 || beat === 2) kick.triggerAttackRelease('C1', '8n', time);
-      if (beat === 1 || beat === 3) snare.triggerAttackRelease('8n', time);
+      const barIndex = Math.floor(drumStep / 4);
+      if (barIndex >= 2) {
+        const isFuelScene = ['s10', 's11', 's1'].includes(scenes[idx]);
+        if (beat === 0 && isFuelScene) {
+          // 節目(小節の頭)をあえて外し、緊張感の溜めを作る
+        } else if (beat === 0 || beat === 2) {
+          kick.triggerAttackRelease('C1', '8n', time);
+        }
+        if (beat === 1 || beat === 3) snare.triggerAttackRelease('8n', time);
+      }
       drumStep++;
     }, '4n');
 
