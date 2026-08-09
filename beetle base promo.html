@@ -763,7 +763,8 @@
     drumLoop = new Tone.Loop((time) => {
       const beat = drumStep % 4;
       const barIndex = Math.floor(drumStep / 4);
-      if (barIndex >= 4) {
+      const inQuietZone = ['s10', 's11', 's1'].includes(scenes[idx]);
+      if (barIndex >= 4 && !inQuietZone) {
         if (beat === 0 || beat === 2) kick.triggerAttackRelease('C1', '8n', time);
         if (beat === 1 || beat === 3) snare.triggerAttackRelease('8n', time);
       }
