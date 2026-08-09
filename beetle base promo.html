@@ -33,6 +33,12 @@
   }
   .stage{ display:flex; flex-direction:column; align-items:center; gap:16px; padding:24px; }
   .stage-label{ font-size:11px; letter-spacing:.28em; color:var(--text-faint); text-transform:uppercase; }
+  .sound-toggle{
+    background:#161616; border:1px solid var(--line); color:var(--text-dim);
+    font-size:11px; padding:7px 14px; border-radius:20px; cursor:pointer;
+    letter-spacing:.03em; transition:color .3s ease, border-color .3s ease;
+  }
+  .sound-toggle.playing{ color:var(--emerald-soft); border-color:var(--emerald); }
 
   .phone{
     position:relative;
@@ -62,7 +68,7 @@
     opacity:0; pointer-events:none;
     transform:scale(1.02);
     filter:blur(14px);
-    transition:opacity 1.4s ease, transform 1.4s ease, filter 1.4s ease;
+    transition:opacity .5s ease, transform .5s ease, filter .5s ease;
     font-size:12px;
     overflow:hidden;
   }
@@ -124,7 +130,7 @@
 
   .copy-line{ font-size:22px; color:#fff; font-weight:700; line-height:1.6; }
   .kakko{
-    color:#fff; font-weight:900;
+    color:#fff; font-weight:700; font-size:1em;
     display:inline-block; opacity:0; filter:blur(8px);
   }
   .scene.active .kakko{ animation:kakkoReveal .9s ease forwards .9s; }
@@ -285,20 +291,39 @@
   .modal-btn.gray{ background:#262626; color:#fff; }
   .modal-btn.amber{ background:var(--amber); color:#1a0f00; }
 
-  #s1 .visual{ align-items:center; justify-content:center; text-align:center; }
+  .access-card{ display:flex; flex-direction:column; align-items:center; margin-top:20px; }
+  .access-phone{ width:90px; opacity:0; transform:translateY(30px); transition:opacity .8s ease, transform .8s cubic-bezier(.2,.8,.25,1); }
+  .scene.show-visual .access-phone{ opacity:1; transform:translateY(0); }
+  .access-badges{ margin-top:22px; display:flex; flex-direction:column; gap:10px; width:100%; }
+  .access-badge{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:10px 14px; font-size:11px; color:#fff; font-weight:700;
+    opacity:0; transform:translateX(-20px);
+    transition:opacity .5s ease, transform .5s cubic-bezier(.2,.8,.25,1);
+  }
+  .scene.show-visual .access-badge{ opacity:1; transform:translateX(0); }
+  .scene.show-visual .access-badge:nth-child(1){ transition-delay:.3s; }
+  .scene.show-visual .access-badge:nth-child(2){ transition-delay:.45s; }
+  .scene.show-visual .access-badge:nth-child(3){ transition-delay:.6s; }
+
+  #s1 .visual, #s10 .visual, #s11 .visual{ align-items:center; justify-content:center; text-align:center; }
   .hero-logo{ width:64px; height:64px; margin-bottom:16px; }
   .hero-word{ font-family:'Zen Maru Gothic', sans-serif; font-weight:900; font-size:38px; color:var(--emerald); }
   .hero-by{ margin-top:6px; font-size:11px; color:var(--text-dim); letter-spacing:.05em; }
+  .hero-push{ margin-top:26px; font-size:20px; font-weight:700; color:#fff; }
+  .hero-push .kakko{ color:var(--emerald-soft); }
   .cta-btn{ margin-top:20px; padding:14px 30px; border-radius:30px; background:var(--emerald); color:#04150e; font-weight:900; font-size:14px; }
   .url{ margin-top:14px; font-size:10.5px; color:var(--text-faint); }
 
   .hint{ margin-top:4px; font-size:11px; color:var(--text-faint); letter-spacing:.04em; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/15.5.27/Tone.js"></script>
 </head>
 <body>
 
 <div class="stage">
   <div class="stage-label">Beetle Base &nbsp;/&nbsp; Promotion Reel</div>
+  <button id="soundToggle" class="sound-toggle">🔇 タップして音を再生</button>
 
   <div class="phone" id="phone">
     <div class="screen">
@@ -306,24 +331,30 @@
       <div class="progress-row" id="progressRow"></div>
 
       <!-- Scene 1: Hero -->
-      <div class="scene active show-visual" id="s1">
+      <div class="scene" id="s10">
         <div class="visual">
-          <svg class="hero-logo" viewBox="0 0 64 64" fill="none">
-            <path d="M32 8c-3 0-5 3-5 6" stroke="#10b981" stroke-width="2.4" stroke-linecap="round"/>
-            <path d="M32 8c3 0 5 3 5 6" stroke="#10b981" stroke-width="2.4" stroke-linecap="round"/>
-            <ellipse cx="32" cy="30" rx="13" ry="19" fill="#0e0e0e" stroke="#10b981" stroke-width="2"/>
-            <line x1="32" y1="14" x2="32" y2="46" stroke="#2a2a2a" stroke-width="1.4"/>
-            <path d="M14 24c-4 2-7 6-8 11" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
-            <path d="M50 24c4 2 7 6 8 11" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
-          </svg>
+          <div class="copy-line">これまでのすべてを、<br><span class="kakko">燃料に変えろ。</span></div>
+        </div>
+        <div class="copy-full"></div>
+      </div>
+
+      <div class="scene" id="s11">
+        <div class="visual">
+          <div class="copy-line">頂点への加速は、<br><span class="kakko">ここからだ。</span></div>
+        </div>
+        <div class="copy-full"></div>
+      </div>
+
+      <div class="scene" id="s1">
+        <div class="visual">
           <div class="hero-word">Beetle Base</div>
           <div class="hero-by">made by MH</div>
         </div>
-        <div class="copy-full"><div class="copy-line">個体管理・血統図・成長記録を、<br><span class="kakko">これ1つで。</span></div></div>
+        <div class="copy-full"></div>
       </div>
 
       <!-- Scene 2: List view -->
-      <div class="scene" id="s2">
+      <div class="scene active" id="s2">
         <div class="visual">
           <div class="app-brand"><div><div class="app-name">Beetle Base<span class="app-by">made by MH</span></div></div></div>
           <div class="btn-row">
@@ -343,7 +374,7 @@
             <div class="trow"><span class="tcell name">630475</span><span class="tcell">2025-06-30</span><span class="tcell">-</span></div>
           </div>
         </div>
-        <div class="copy-full"><div class="copy-line">検索も並び替えも、<br><span class="kakko">指先ひとつで。</span></div></div>
+        <div class="copy-full"><div class="copy-line">個体が増えるほど、<br><span class="kakko">管理は追いつかなくなる。</span></div></div>
       </div>
 
       <!-- Scene 3: Detail view -->
@@ -365,7 +396,7 @@
             <div class="field"><label>羽化サイズ（MM）</label><div class="val">83mm</div></div>
           </div>
         </div>
-        <div class="copy-full"><div class="copy-line">写真も血統も成長記録も、<br><span class="kakko">個体ごとに一元管理。</span></div></div>
+        <div class="copy-full"><div class="copy-line">写真も血統も、<br><span class="kakko">バラバラになりがち。</span></div></div>
       </div>
 
       <!-- Scene 4: Growth chart -->
@@ -395,7 +426,7 @@
             <div class="chart-legend2"><span><i class="dot-solid"></i>実測</span><span><i class="dot-dash"></i>理想曲線</span></div>
           </div>
         </div>
-        <div class="copy-full"><div class="copy-line">体重の推移を記録し、<br><span class="kakko">理想曲線と自動比較。</span></div></div>
+        <div class="copy-full"><div class="copy-line">この子の成長、<br><span class="kakko">順調か不安になる。</span></div></div>
       </div>
 
       <!-- Scene 5: Pedigree -->
@@ -428,7 +459,7 @@
             <div class="tnode" style="top:148px; right:24px;">462817<br>羽化</div>
           </div>
         </div>
-        <div class="copy-full"><div class="copy-line">カードをドラッグして、<br><span class="kakko">思い通りの血統図に。</span></div></div>
+        <div class="copy-full"><div class="copy-line">代を重ねるほど、<br><span class="kakko">血統が分からなくなる。</span></div></div>
       </div>
 
       <!-- Scene 6: Breeding sim -->
@@ -449,7 +480,7 @@
             <div class="risk-bar-track"><div class="risk-bar" data-target="68.75"></div></div>
           </div>
         </div>
-        <div class="copy-full"><div class="copy-line">F値も血縁係数も、<br><span class="kakko">交配前に自動計算。</span></div></div>
+        <div class="copy-full"><div class="copy-line">気づかないまま、<br><span class="kakko">近親交配してるかも。</span></div></div>
       </div>
 
       <!-- Scene 7: Excel modal -->
@@ -491,7 +522,51 @@
             <div class="axis-title-x">経過日数</div>
           </div>
         </div>
-        <div class="copy-full"><div class="copy-line">羽化サイズも経過日数も、<br><span class="kakko">散布図で一目瞭然。</span></div></div>
+        <div class="copy-full"><div class="copy-line">感覚じゃなく、<br><span class="kakko">データが教えてくれる。</span></div></div>
+      </div>
+
+      <!-- Scene 8: Anywhere access -->
+      <div class="scene" id="s8">
+        <div class="visual">
+          <div class="eyebrow">FEATURE 07 — どこでも使える</div>
+          <h2 class="headline" style="margin-bottom:14px;">インストール不要</h2>
+          <div class="access-card">
+            <svg class="access-phone" viewBox="0 0 64 100" fill="none">
+              <rect x="4" y="4" width="56" height="92" rx="10" stroke="#10b981" stroke-width="2.5"/>
+              <line x1="4" y1="16" x2="60" y2="16" stroke="#2a2a2a" stroke-width="1.5"/>
+              <line x1="4" y1="84" x2="60" y2="84" stroke="#2a2a2a" stroke-width="1.5"/>
+              <circle cx="32" cy="90" r="3" stroke="#10b981" stroke-width="2"/>
+            </svg>
+            <div class="access-badges">
+              <div class="access-badge">✓ iPhone / Android / PC 対応</div>
+              <div class="access-badge">✓ ブラウザだけで動く</div>
+              <div class="access-badge">✓ アプリのダウンロード不要</div>
+            </div>
+          </div>
+        </div>
+        <div class="copy-full"><div class="copy-line">どこにいても、<br>記録が見える。<br><span class="kakko">それが、全部無料。</span></div></div>
+      </div>
+
+      <!-- Scene 9: Security -->
+      <div class="scene" id="s9">
+        <div class="visual">
+          <div class="eyebrow">FEATURE 08 — 安全性</div>
+          <h2 class="headline" style="margin-bottom:14px;">サーバー送信なし</h2>
+          <div class="access-card">
+            <svg class="access-phone" viewBox="0 0 64 76" fill="none">
+              <rect x="12" y="30" width="40" height="40" rx="6" stroke="#10b981" stroke-width="2.5"/>
+              <path d="M20 30 V18 a12 12 0 0 1 24 0 V30" stroke="#10b981" stroke-width="2.5" fill="none"/>
+              <circle cx="32" cy="48" r="4" fill="#10b981"/>
+              <line x1="32" y1="52" x2="32" y2="58" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <div class="access-badges">
+              <div class="access-badge">✓ 登録・ログイン不要</div>
+              <div class="access-badge">✓ データは端末内にのみ保存</div>
+              <div class="access-badge">✓ サーバーへの外部送信なし</div>
+            </div>
+          </div>
+        </div>
+        <div class="copy-full"><div class="copy-line">サーバー送信しないから、<br><span class="kakko">情報漏洩の心配なし。</span></div></div>
       </div>
 
 
@@ -502,8 +577,8 @@
 </div>
 
 <script>
-  const scenes = ['s1','s2','s3','s4','s5','s6','s7'];
-  const durations = [4200, 5800, 5000, 7400, 6700, 6500, 6500];
+  const scenes = ['s2','s3','s4','s5','s6','s7','s9','s8','s10','s11','s1'];
+  const durations = [6300, 5000, 7400, 8200, 8000, 8000, 7000, 7000, 3000, 3000, 4200];
   const copyRatio = 0.6; // コピー→画像へ切り替わるタイミング(シーンの尺に対する割合)
   let idx = 0, timer = null, switchTimer = null;
 
@@ -544,27 +619,25 @@
     scenes.forEach((id,i) => {
       const el = document.getElementById(id);
       el.classList.toggle('active', i===idx);
-      if (id !== 's1') el.classList.remove('show-visual');
+      el.classList.remove('show-visual');
     });
-    // 最初のシーン(Beetle Baseロゴ)は、フェードアウト中も含めて常にロゴ側を表示したまま
-    document.getElementById('s1').classList.add('show-visual');
     resetGauges();
     fills.forEach((f,i) => {
       f.style.animation = 'none'; f.style.width = i < idx ? '100%' : '0%';
       if (i === idx){ void f.offsetWidth; f.style.animation = 'fillbar linear forwards'; f.style.animationDuration = durations[idx] + 'ms'; }
     });
   }
+  const quickWordScenes = ['s10','s11','s1'];
   function next(){ idx = (idx+1) % scenes.length; render(); schedule(); }
   function schedule(){
     clearTimeout(timer); clearTimeout(switchTimer);
     const currentEl = document.getElementById(scenes[idx]);
-    // s1以外は、シーンの尺の中間地点で1回だけコピー→画像に切り替える
-    if (scenes[idx] !== 's1') {
-      switchTimer = setTimeout(() => {
-        currentEl.classList.add('show-visual');
-        if (scenes[idx] === 's6') animateGauges();
-      }, durations[idx] * copyRatio);
-    }
+    const ratio = quickWordScenes.includes(scenes[idx]) ? 0.15 : copyRatio;
+    // シーンの尺の中間地点(単語のみのシーンは早め)で1回だけコピー→画像に切り替える
+    switchTimer = setTimeout(() => {
+      currentEl.classList.add('show-visual');
+      if (scenes[idx] === 's6') animateGauges();
+    }, durations[idx] * ratio);
     timer = setTimeout(next, durations[idx]);
   }
 
@@ -572,6 +645,123 @@
     const rect = e.currentTarget.getBoundingClientRect();
     idx = e.clientX < rect.left + rect.width/2 ? (idx-1+scenes.length)%scenes.length : (idx+1)%scenes.length;
     render(); schedule();
+  });
+
+  // ---- 革命的・先進的なイメージのジェネラティブBGM (Tone.js) ----
+  let audioReady = false;
+  let musicPlaying = false;
+  let bassLoop, arpLoop, padLoop, hatLoop, subLoop;
+
+  async function buildMusic() {
+    // マスター出力(全体音量をここで一括調整・リミッターで音割れ防止)
+    const limiter = new Tone.Limiter(-1).toDestination();
+    const master = new Tone.Volume(0).connect(limiter);
+
+    // エフェクトチェーン: ディレイ→リバーブで広がりのある空間を作る
+    const reverb = new Tone.Reverb({ decay: 7, wet: 0.32 });
+    reverb.connect(master);
+    await reverb.ready; // 生成完了を待たないと無音になることがある
+    const delay = new Tone.FeedbackDelay({ delayTime: '8n.', feedback: 0.35, wet: 0.22 }).connect(reverb);
+    const autoFilter = new Tone.AutoFilter({ frequency: 0.09, depth: 0.65, baseFrequency: 250, octaves: 3.2 }).connect(delay).start();
+
+    // うねる低域のサブベース(革命的な鼓動)
+    const sub = new Tone.MonoSynth({
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.05, decay: 0.3, sustain: 0.6, release: 0.6 },
+      filterEnvelope: { attack: 0.05, decay: 0.3, sustain: 0.4, baseFrequency: 60, octaves: 2 }
+    }).connect(master);
+    sub.volume.value = 2;
+    const subPattern = ['C1', null, 'C1', null, 'Ab0', null, 'Bb0', null];
+    let subStep = 0;
+    subLoop = new Tone.Loop((time) => {
+      const n = subPattern[subStep % subPattern.length];
+      if (n) sub.triggerAttackRelease(n, '4n', time);
+      subStep++;
+    }, '4n');
+
+    // 駆動感のあるベースライン
+    const bass = new Tone.MonoSynth({
+      oscillator: { type: 'sawtooth' },
+      envelope: { attack: 0.01, decay: 0.15, sustain: 0.3, release: 0.3 },
+      filterEnvelope: { attack: 0.01, decay: 0.25, sustain: 0.2, baseFrequency: 100, octaves: 3 }
+    }).connect(delay);
+    bass.volume.value = -4;
+    const bassPattern = ['C2', 'C2', 'Eb2', 'C2', 'Ab1', 'C2', 'Bb1', 'Bb1'];
+    let bStep = 0;
+    bassLoop = new Tone.Loop((time) => {
+      bass.triggerAttackRelease(bassPattern[bStep % bassPattern.length], '8n', time);
+      bStep++;
+    }, '8n');
+
+    // 先進的なアルペジオ(未来を感じさせるシンセ)
+    const arp = new Tone.Synth({
+      oscillator: { type: 'square' },
+      envelope: { attack: 0.003, decay: 0.12, sustain: 0, release: 0.08 }
+    }).connect(autoFilter);
+    arp.volume.value = -8;
+    const arpNotes = ['C4', 'Eb4', 'G4', 'Bb4', 'C5', 'Bb4', 'G4', 'Eb4', 'Ab4', 'G4', 'Eb4', 'C4'];
+    let aStep = 0;
+    arpLoop = new Tone.Loop((time) => {
+      arp.triggerAttackRelease(arpNotes[aStep % arpNotes.length], '16n', time);
+      aStep++;
+    }, '16n');
+
+    // 壮大に広がるパッド(革命の高揚感)
+    const pad = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'fatsawtooth', count: 3, spread: 24 },
+      envelope: { attack: 1.6, decay: 0.6, sustain: 0.55, release: 2.5 }
+    }).connect(reverb);
+    pad.volume.value = -9;
+    const chords = [['C3', 'Eb3', 'G3'], ['Ab2', 'C3', 'Eb3'], ['Bb2', 'D3', 'F3'], ['G2', 'Bb2', 'Eb3']];
+    let cStep = 0;
+    padLoop = new Tone.Loop((time) => {
+      pad.triggerAttackRelease(chords[cStep % chords.length], '2n', time);
+      cStep++;
+    }, '2n');
+
+    // 推進力を生むハイハット
+    const hat = new Tone.NoiseSynth({
+      noise: { type: 'white' },
+      envelope: { attack: 0.001, decay: 0.04, sustain: 0 }
+    }).connect(delay);
+    hat.volume.value = -14;
+    hatLoop = new Tone.Loop((time) => {
+      hat.triggerAttackRelease('16n', time);
+    }, '8n');
+
+    Tone.Transport.bpm.value = 112;
+  }
+
+  async function toggleMusic() {
+    const btn = document.getElementById('soundToggle');
+    try {
+      if (!audioReady) {
+        btn.textContent = '⏳ 読み込み中...';
+        await Tone.start();
+        await buildMusic();
+        audioReady = true;
+      }
+      if (musicPlaying) {
+        Tone.Transport.pause();
+        musicPlaying = false;
+        btn.textContent = '🔇 タップして音を再生';
+        btn.classList.remove('playing');
+      } else {
+        [subLoop, bassLoop, arpLoop, padLoop, hatLoop].forEach(l => l.start(0));
+        Tone.Transport.start();
+        musicPlaying = true;
+        btn.textContent = '🔊 再生中（音量を確認）';
+        btn.classList.add('playing');
+      }
+    } catch (err) {
+      console.error('music error', err);
+      btn.textContent = '⚠️ 音声エラー';
+    }
+  }
+
+  document.getElementById('soundToggle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleMusic();
   });
 
   try {
