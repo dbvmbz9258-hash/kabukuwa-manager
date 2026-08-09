@@ -650,7 +650,7 @@
   // ---- 革命的・先進的なイメージのジェネラティブBGM (Tone.js) ----
   let audioReady = false;
   let musicPlaying = false;
-  let bassLoop, arpLoop, padLoop, hatLoop, subLoop;
+  let bassLoop, arpLoop, padLoop, hatLoop, subLoop, drumLoop;
 
   async function buildMusic() {
     // マスター出力(全体音量をここで一括調整・リミッターで音割れ防止)
@@ -741,6 +741,31 @@
       hat.triggerAttackRelease('16n', time + (Math.random() * 0.01 - 0.005));
     }, '2n');
 
+    // キック(重心のある低音の一打)
+    const kick = new Tone.MembraneSynth({
+      pitchDecay: 0.045,
+      octaves: 5,
+      envelope: { attack: 0.001, decay: 0.35, sustain: 0 }
+    }).connect(masterFilter);
+    kick.volume.value = -4;
+
+    // スネア(ノイズ+バンドパスで芯のある音に)
+    const snareFilter = new Tone.Filter({ type: 'bandpass', frequency: 1600, Q: 0.9 }).connect(delay);
+    const snare = new Tone.NoiseSynth({
+      noise: { type: 'white' },
+      envelope: { attack: 0.001, decay: 0.18, sustain: 0 }
+    }).connect(snareFilter);
+    snare.volume.value = -12;
+
+    // 1拍目・3拍目にキック、2拍目・4拍目にスネア(落ち着いたバックビート)
+    let drumStep = 0;
+    drumLoop = new Tone.Loop((time) => {
+      const beat = drumStep % 4;
+      if (beat === 0 || beat === 2) kick.triggerAttackRelease('C1', '8n', time);
+      if (beat === 1 || beat === 3) snare.triggerAttackRelease('8n', time);
+      drumStep++;
+    }, '4n');
+
     Tone.Transport.bpm.value = 96;
   }
 
@@ -759,7 +784,7 @@
         btn.textContent = '🔇 タップして音を再生';
         btn.classList.remove('playing');
       } else {
-        [subLoop, bassLoop, arpLoop, padLoop, hatLoop].forEach(l => l.start(0));
+        [subLoop, bassLoop, arpLoop, padLoop, hatLoop, drumLoop].forEach(l => l.start(0));
         Tone.Transport.start();
         musicPlaying = true;
         btn.textContent = '🔊 再生中（音量を確認）';
