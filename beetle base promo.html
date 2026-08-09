@@ -657,21 +657,27 @@
     const limiter = new Tone.Limiter(-1).toDestination();
     const master = new Tone.Volume(0).connect(limiter);
 
+    // 全体にゆっくりかかるフィルター(38秒周期でうねり、単調なループ感を消す)
+    const masterFilter = new Tone.Filter({ type: 'lowpass', frequency: 2000, Q: 0.5 }).connect(master);
+    const slowLfo = new Tone.LFO({ frequency: 1 / 38, min: 700, max: 5000 }).connect(masterFilter.frequency).start();
+
     // エフェクトチェーン: ディレイ→リバーブで広がりのある空間を作る
-    const reverb = new Tone.Reverb({ decay: 7, wet: 0.32 });
-    reverb.connect(master);
+    const reverb = new Tone.Reverb({ decay: 8, wet: 0.34 });
+    reverb.connect(masterFilter);
     await reverb.ready; // 生成完了を待たないと無音になることがある
-    const delay = new Tone.FeedbackDelay({ delayTime: '8n.', feedback: 0.35, wet: 0.22 }).connect(reverb);
-    const autoFilter = new Tone.AutoFilter({ frequency: 0.09, depth: 0.65, baseFrequency: 250, octaves: 3.2 }).connect(delay).start();
+    const delay = new Tone.FeedbackDelay({ delayTime: '8n.', feedback: 0.38, wet: 0.24 }).connect(reverb);
+    const autoFilter = new Tone.AutoFilter({ frequency: 0.06, depth: 0.7, baseFrequency: 200, octaves: 3.5 }).connect(delay).start();
 
     // うねる低域のサブベース(革命的な鼓動)
     const sub = new Tone.MonoSynth({
       oscillator: { type: 'sine' },
       envelope: { attack: 0.05, decay: 0.3, sustain: 0.6, release: 0.6 },
       filterEnvelope: { attack: 0.05, decay: 0.3, sustain: 0.4, baseFrequency: 60, octaves: 2 }
-    }).connect(master);
+    }).connect(masterFilter);
     sub.volume.value = 2;
-    const subPattern = ['C1', null, 'C1', null, 'Ab0', null, 'Bb0', null];
+    // 8小節ぶんのパターン(4小節だけの繰り返しより長く感じる)
+    const subPattern = ['C1', null, 'C1', null, 'Ab0', null, 'Bb0', null,
+                         'C1', null, 'Eb1', null, 'F0', null, 'G0', null];
     let subStep = 0;
     subLoop = new Tone.Loop((time) => {
       const n = subPattern[subStep % subPattern.length];
@@ -679,54 +685,60 @@
       subStep++;
     }, '4n');
 
-    // 駆動感のあるベースライン
+    // 駆動感のあるベースライン(8小節、後半で展開)
     const bass = new Tone.MonoSynth({
       oscillator: { type: 'sawtooth' },
       envelope: { attack: 0.01, decay: 0.15, sustain: 0.3, release: 0.3 },
       filterEnvelope: { attack: 0.01, decay: 0.25, sustain: 0.2, baseFrequency: 100, octaves: 3 }
     }).connect(delay);
     bass.volume.value = -4;
-    const bassPattern = ['C2', 'C2', 'Eb2', 'C2', 'Ab1', 'C2', 'Bb1', 'Bb1'];
+    const bassPattern = [
+      'C2', 'C2', 'Eb2', 'C2', 'Ab1', 'C2', 'Bb1', 'Bb1',
+      'C2', 'Eb2', 'F1', 'Eb2', 'G1', 'Bb1', 'G1', 'G1'
+    ];
     let bStep = 0;
     bassLoop = new Tone.Loop((time) => {
       bass.triggerAttackRelease(bassPattern[bStep % bassPattern.length], '8n', time);
       bStep++;
     }, '8n');
 
-    // 先進的なアルペジオ(未来を感じさせるシンセ)
+    // 先進的なアルペジオ(ランダムウォークで毎回違う経路をたどり、単調な繰り返しを回避)
     const arp = new Tone.Synth({
       oscillator: { type: 'square' },
       envelope: { attack: 0.003, decay: 0.12, sustain: 0, release: 0.08 }
     }).connect(autoFilter);
     arp.volume.value = -8;
-    const arpNotes = ['C4', 'Eb4', 'G4', 'Bb4', 'C5', 'Bb4', 'G4', 'Eb4', 'Ab4', 'G4', 'Eb4', 'C4'];
-    let aStep = 0;
-    arpLoop = new Tone.Loop((time) => {
-      arp.triggerAttackRelease(arpNotes[aStep % arpNotes.length], '16n', time);
-      aStep++;
-    }, '16n');
+    const arpNotes = ['C4', 'Eb4', 'G4', 'Bb4', 'C5', 'Eb5', 'D5', 'Bb4', 'Ab4', 'G4', 'F4', 'Eb4'];
+    arpLoop = new Tone.Pattern((time, note) => {
+      // ベロシティにゆらぎを持たせて機械的な均一感を減らす
+      arp.triggerAttackRelease(note, '16n', time, 0.6 + Math.random() * 0.4);
+    }, arpNotes, 'randomWalk');
+    arpLoop.interval = '16n';
 
-    // 壮大に広がるパッド(革命の高揚感)
+    // 壮大に広がるパッド(革命の高揚感、8小節でひと巡り)
     const pad = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'fatsawtooth', count: 3, spread: 24 },
-      envelope: { attack: 1.6, decay: 0.6, sustain: 0.55, release: 2.5 }
+      oscillator: { type: 'fatsawtooth', count: 3, spread: 26 },
+      envelope: { attack: 1.8, decay: 0.6, sustain: 0.55, release: 3 }
     }).connect(reverb);
     pad.volume.value = -9;
-    const chords = [['C3', 'Eb3', 'G3'], ['Ab2', 'C3', 'Eb3'], ['Bb2', 'D3', 'F3'], ['G2', 'Bb2', 'Eb3']];
+    const chords = [
+      ['C3', 'Eb3', 'G3'], ['Ab2', 'C3', 'Eb3'], ['Bb2', 'D3', 'F3'], ['G2', 'Bb2', 'Eb3'],
+      ['C3', 'Eb3', 'G3'], ['F2', 'Ab2', 'C3'],  ['Bb2', 'D3', 'F3'], ['G2', 'C3', 'Eb3']
+    ];
     let cStep = 0;
     padLoop = new Tone.Loop((time) => {
       pad.triggerAttackRelease(chords[cStep % chords.length], '2n', time);
       cStep++;
     }, '2n');
 
-    // 推進力を生むハイハット
+    // 推進力を生むハイハット(タイミングにゆらぎを持たせる)
     const hat = new Tone.NoiseSynth({
       noise: { type: 'white' },
       envelope: { attack: 0.001, decay: 0.04, sustain: 0 }
     }).connect(delay);
     hat.volume.value = -14;
     hatLoop = new Tone.Loop((time) => {
-      hat.triggerAttackRelease('16n', time);
+      hat.triggerAttackRelease('16n', time + (Math.random() * 0.01 - 0.005));
     }, '8n');
 
     Tone.Transport.bpm.value = 112;
