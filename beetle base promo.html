@@ -578,7 +578,8 @@
 
 <script>
   const scenes = ['s2','s3','s4','s5','s6','s7','s9','s8','s10','s11','s1'];
-  const durations = [6300, 5000, 7400, 8200, 8000, 8000, 7000, 7000, 3000, 3000, 4200];
+  // BPM96 = 1拍0.625秒 → 1小節(4拍)2500ms。全シーンをこの倍数に揃えて曲のリズムと同期させる
+  const durations = [7500, 5000, 7500, 7500, 7500, 7500, 7500, 7500, 2500, 2500, 5000];
   const copyRatio = 0.6; // コピー→画像へ切り替わるタイミング(シーンの尺に対する割合)
   let idx = 0, timer = null, switchTimer = null;
 
@@ -812,6 +813,9 @@
         musicPlaying = true;
         btn.textContent = '🔊 再生中（音量を確認）';
         btn.classList.add('playing');
+        // 曲の頭(小節1拍目)と映像のシーン切り替えタイミングを同期させる
+        render();
+        schedule();
       }
     } catch (err) {
       console.error('music error', err);
