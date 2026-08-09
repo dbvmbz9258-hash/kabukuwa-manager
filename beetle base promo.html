@@ -763,17 +763,22 @@
     drumLoop = new Tone.Loop((time) => {
       const beat = drumStep % 4;
       const barIndex = Math.floor(drumStep / 4);
-      if (barIndex >= 2) {
-        const isFuelScene = ['s10', 's11', 's1'].includes(scenes[idx]);
-        if (beat === 0 && isFuelScene) {
-          // 節目(小節の頭)をあえて外し、緊張感の溜めを作る
-        } else if (beat === 0 || beat === 2) {
-          kick.triggerAttackRelease('C1', '8n', time);
-        }
+      if (barIndex >= 4) {
+        if (beat === 0 || beat === 2) kick.triggerAttackRelease('C1', '8n', time);
         if (beat === 1 || beat === 3) snare.triggerAttackRelease('8n', time);
       }
       drumStep++;
     }, '4n');
+
+    // 「燃料に変えろ」〜ロゴが消えるまでは、小節の頭(節目)で全パートを一瞬ミュート
+    Tone.Transport.scheduleRepeat((time) => {
+      if (['s10', 's11', 's1'].includes(scenes[idx])) {
+        master.volume.cancelScheduledValues(time);
+        master.volume.setValueAtTime(0, time);
+        master.volume.linearRampToValueAtTime(-60, time + 0.03);
+        master.volume.linearRampToValueAtTime(0, time + 0.18);
+      }
+    }, '1m');
 
     Tone.Transport.bpm.value = 96;
   }
