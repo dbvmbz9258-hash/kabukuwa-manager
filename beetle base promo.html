@@ -770,13 +770,21 @@
       drumStep++;
     }, '4n');
 
-    // 「燃料に変えろ」〜ロゴが消えるまでは、小節の頭(節目)で全パートを一瞬ミュート
+    // 「燃料に変えろ」〜ロゴが消えるまでは小節の頭(節目)でサイレントに入り、
+    // 次のループの冒頭(s2)に戻るまでそのまま無音を保つ
+    let inSilenceZone = false;
     Tone.Transport.scheduleRepeat((time) => {
-      if (['s10', 's11', 's1'].includes(scenes[idx])) {
+      const shouldBeSilent = ['s10', 's11', 's1'].includes(scenes[idx]);
+      if (shouldBeSilent && !inSilenceZone) {
+        inSilenceZone = true;
         master.volume.cancelScheduledValues(time);
         master.volume.setValueAtTime(0, time);
-        master.volume.linearRampToValueAtTime(-60, time + 0.03);
-        master.volume.linearRampToValueAtTime(0, time + 0.18);
+        master.volume.linearRampToValueAtTime(-60, time + 0.15);
+      } else if (!shouldBeSilent && inSilenceZone) {
+        inSilenceZone = false;
+        master.volume.cancelScheduledValues(time);
+        master.volume.setValueAtTime(-60, time);
+        master.volume.linearRampToValueAtTime(0, time + 0.15);
       }
     }, '1m');
 
